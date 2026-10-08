@@ -1,0 +1,15 @@
+.git/
+.github/
+.specify/
+.agents/
+.toolchain/
+.bootstrap/
+.pao/
+audits/
+pao-runs/
+dist/
+coverage/
+*.log*
+.env*
+Thumbs.db
+Desktop.ini

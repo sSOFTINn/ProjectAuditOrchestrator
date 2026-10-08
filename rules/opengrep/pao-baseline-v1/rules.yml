@@ -1,0 +1,38 @@
+rules:
+  - id: pao.python.dynamic-eval
+    message: Dynamic Python evaluation can execute attacker-controlled code.
+    severity: ERROR
+    languages: [python]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+
+  - id: pao.python.subprocess-shell
+    message: A subprocess launched through a shell needs strict input validation.
+    severity: ERROR
+    languages: [python]
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+
+  - id: pao.javascript.child-process-exec
+    message: child_process exec-style APIs invoke a shell and require strict input validation.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: $CP.exec(...)
+      - pattern: $CP.execSync(...)
+
+  - id: pao.go.insecure-skip-tls-verify
+    message: TLS certificate verification is explicitly disabled.
+    severity: ERROR
+    languages: [go]
+    pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}'
+
+  - id: pao.powershell.invoke-expression
+    message: Invoke-Expression executes dynamically constructed PowerShell code.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.ps1"
+        - "*.psm1"
+    pattern-regex: '(?i)(^|[^A-Za-z0-9_-])(Invoke-Expression|iex)([^A-Za-z0-9_-]|$)'

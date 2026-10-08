@@ -1,0 +1,181 @@
+{
+  "version": "pao.dev/schema-validation-pins/v1",
+  "retrieved_at": "2026-10-02",
+  "entries": [
+    {
+      "path": "cyclonedx/bom-1.5.schema.json",
+      "sha256": "067f7824b08653839ea050ae9e09ca48375eadc2652b0e2a299476e7db90335b",
+      "source": "https://raw.githubusercontent.com/CycloneDX/specification/c320fc0f0b46873864927d9d5684eea7ba439728/schema/bom-1.5.schema.json",
+      "kind": "schema",
+      "revision": "c320fc0f0b46873864927d9d5684eea7ba439728"
+    },
+    {
+      "path": "cyclonedx/spdx.schema.json",
+      "sha256": "4f6e2b05c05d26a4f2dc5879fbc2fca94b0a28db46289d0c51345621b71cfbfc",
+      "source": "https://raw.githubusercontent.com/CycloneDX/specification/c320fc0f0b46873864927d9d5684eea7ba439728/schema/spdx.schema.json",
+      "kind": "schema",
+      "revision": "c320fc0f0b46873864927d9d5684eea7ba439728"
+    },
+    {
+      "path": "cyclonedx/jsf-0.82.schema.json",
+      "sha256": "8bae002c25e723db7ee1f26afde680ae1a2b1a8f6b4b4b0fd65dc3becb090aae",
+      "source": "https://raw.githubusercontent.com/CycloneDX/specification/c320fc0f0b46873864927d9d5684eea7ba439728/schema/jsf-0.82.schema.json",
+      "kind": "schema",
+      "revision": "c320fc0f0b46873864927d9d5684eea7ba439728"
+    },
+    {
+      "path": "licenses/CycloneDX-LICENSE.txt",
+      "sha256": "6c29f22a4a7385285c6f579ec9f33c5e989f00739d6b257243a0b082ec9447ae",
+      "source": "https://raw.githubusercontent.com/CycloneDX/specification/c320fc0f0b46873864927d9d5684eea7ba439728/LICENSE",
+      "kind": "license",
+      "revision": "c320fc0f0b46873864927d9d5684eea7ba439728"
+    },
+    {
+      "path": "spdx/spdx-2.3.schema.json",
+      "sha256": "239208b7ac287b3cf5d9a9af23f9d69863971102a5e1587a27a398b43490b89b",
+      "source": "https://raw.githubusercontent.com/spdx/spdx-spec/aadf3b0b8dbbabdb4d880b0fc714255fea436ff7/schemas/spdx-schema.json",
+      "kind": "schema",
+      "revision": "aadf3b0b8dbbabdb4d880b0fc714255fea436ff7"
+    },
+    {
+      "path": "licenses/SPDX-LICENSE.txt",
+      "sha256": "017e38491cccbd2bdb6da0a32a33db9ec245b5dab30fdcd09f2c742c975e5b35",
+      "source": "https://raw.githubusercontent.com/spdx/spdx-spec/aadf3b0b8dbbabdb4d880b0fc714255fea436ff7/LICENSE",
+      "kind": "license",
+      "revision": "aadf3b0b8dbbabdb4d880b0fc714255fea436ff7"
+    },
+    {
+      "path": "sarif/sarif-2.1.0.schema.json",
+      "sha256": "ad6db49878699b091f3eeb765b6e29e92a34bad4da88664d000c923b549c3a25",
+      "source": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+      "kind": "schema",
+      "release": "OASIS Standard 2020-03-27"
+    },
+    {
+      "path": "licenses/OASIS-SARIF-NOTICES.txt",
+      "sha256": "951f6a86d95cf31a866f9064b2eb544de77a9e67a6426c2c15fd097833c560f2",
+      "source": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/jsonschema-4.17.3-py3-none-any.whl",
+      "sha256": "a870ad254da1a8ca84b6a2905cac29d265f805acc57af304784962a2aa6508f6",
+      "source": "https://files.pythonhosted.org/packages/c1/97/c698bd9350f307daad79dd740806e1a59becd693bd11443a0f531e3229b3/jsonschema-4.17.3-py3-none-any.whl",
+      "kind": "wheel",
+      "package": "jsonschema",
+      "version": "4.17.3",
+      "pypi_sha256": "a870ad254da1a8ca84b6a2905cac29d265f805acc57af304784962a2aa6508f6"
+    },
+    {
+      "path": "licenses/jsonschema-0-COPYING",
+      "sha256": "4f92a015a13c4d1a040bef018aa13430b4f1bc73b41b16bb846c346766de7439",
+      "source": "https://files.pythonhosted.org/packages/c1/97/c698bd9350f307daad79dd740806e1a59becd693bd11443a0f531e3229b3/jsonschema-4.17.3-py3-none-any.whl#jsonschema-4.17.3.dist-info/licenses/COPYING",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/attrs-23.2.0-py3-none-any.whl",
+      "sha256": "99b87a485a5820b23b879f04c2305b44b951b502fd64be915879d77a7e8fc6f1",
+      "source": "https://files.pythonhosted.org/packages/e0/44/827b2a91a5816512fcaf3cc4ebc465ccd5d598c45cefa6703fcf4a79018f/attrs-23.2.0-py3-none-any.whl",
+      "kind": "wheel",
+      "package": "attrs",
+      "version": "23.2.0",
+      "pypi_sha256": "99b87a485a5820b23b879f04c2305b44b951b502fd64be915879d77a7e8fc6f1"
+    },
+    {
+      "path": "licenses/attrs-0-LICENSE",
+      "sha256": "882115c95dfc2af1eeb6714f8ec6d5cbcabf667caff8729f42420da63f714e9f",
+      "source": "https://files.pythonhosted.org/packages/e0/44/827b2a91a5816512fcaf3cc4ebc465ccd5d598c45cefa6703fcf4a79018f/attrs-23.2.0-py3-none-any.whl#attrs-23.2.0.dist-info/licenses/LICENSE",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/pyrsistent-0.20.0-py3-none-any.whl",
+      "sha256": "c55acc4733aad6560a7f5f818466631f07efc001fd023f34a6c203f8b6df0f0b",
+      "source": "https://files.pythonhosted.org/packages/23/88/0acd180010aaed4987c85700b7cc17f9505f3edb4e5873e4dc67f613e338/pyrsistent-0.20.0-py3-none-any.whl",
+      "kind": "wheel",
+      "package": "pyrsistent",
+      "version": "0.20.0",
+      "pypi_sha256": "c55acc4733aad6560a7f5f818466631f07efc001fd023f34a6c203f8b6df0f0b"
+    },
+    {
+      "path": "licenses/pyrsistent-0-LICENSE.mit",
+      "sha256": "3fd3d3d1ab9c733ee453fbf3bbbaa845440d0d8c20d7b5a039d2e46a2ed7fc01",
+      "source": "https://files.pythonhosted.org/packages/23/88/0acd180010aaed4987c85700b7cc17f9505f3edb4e5873e4dc67f613e338/pyrsistent-0.20.0-py3-none-any.whl#pyrsistent-0.20.0.dist-info/LICENSE.mit",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/rfc3339_validator-0.1.4-py2.py3-none-any.whl",
+      "sha256": "24f6ec1eda14ef823da9e36ec7113124b39c04d50a4d3d3a3c2859577e7791fa",
+      "source": "https://files.pythonhosted.org/packages/7b/44/4e421b96b67b2daff264473f7465db72fbdf36a07e05494f50300cc7b0c6/rfc3339_validator-0.1.4-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "package": "rfc3339-validator",
+      "version": "0.1.4",
+      "pypi_sha256": "24f6ec1eda14ef823da9e36ec7113124b39c04d50a4d3d3a3c2859577e7791fa"
+    },
+    {
+      "path": "licenses/rfc3339-validator-0-LICENSE",
+      "sha256": "5ba1a4f03626ccca6dcbf53a554545e4f776a335bfdaa233ec3bfe9bb7fac15d",
+      "source": "https://files.pythonhosted.org/packages/7b/44/4e421b96b67b2daff264473f7465db72fbdf36a07e05494f50300cc7b0c6/rfc3339_validator-0.1.4-py2.py3-none-any.whl#rfc3339_validator-0.1.4.dist-info/LICENSE",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/rfc3986_validator-0.1.1-py2.py3-none-any.whl",
+      "sha256": "2f235c432ef459970b4306369336b9d5dbdda31b510ca1e327636e01f528bfa9",
+      "source": "https://files.pythonhosted.org/packages/9e/51/17023c0f8f1869d8806b979a2bffa3f861f26a3f1a66b094288323fba52f/rfc3986_validator-0.1.1-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "package": "rfc3986-validator",
+      "version": "0.1.1",
+      "pypi_sha256": "2f235c432ef459970b4306369336b9d5dbdda31b510ca1e327636e01f528bfa9"
+    },
+    {
+      "path": "licenses/rfc3986-validator-0-LICENSE",
+      "sha256": "5ba1a4f03626ccca6dcbf53a554545e4f776a335bfdaa233ec3bfe9bb7fac15d",
+      "source": "https://files.pythonhosted.org/packages/9e/51/17023c0f8f1869d8806b979a2bffa3f861f26a3f1a66b094288323fba52f/rfc3986_validator-0.1.1-py2.py3-none-any.whl#rfc3986_validator-0.1.1.dist-info/LICENSE",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/six-1.17.0-py2.py3-none-any.whl",
+      "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+      "source": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "package": "six",
+      "version": "1.17.0",
+      "pypi_sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+    },
+    {
+      "path": "licenses/six-0-LICENSE",
+      "sha256": "4375ba20e2b9c6c4e7cad2940a628fd90e95cc3d50ee92aae755715d8ba1fbd0",
+      "source": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl#six-1.17.0.dist-info/LICENSE",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/rfc3987_syntax-1.1.0-py3-none-any.whl",
+      "sha256": "6c3d97604e4c5ce9f714898e05401a0445a641cfa276432b0a648c80856f6a3f",
+      "source": "https://files.pythonhosted.org/packages/7e/71/44ce230e1b7fadd372515a97e32a83011f906ddded8d03e3c6aafbdedbb7/rfc3987_syntax-1.1.0-py3-none-any.whl",
+      "kind": "wheel",
+      "package": "rfc3987-syntax",
+      "version": "1.1.0",
+      "pypi_sha256": "6c3d97604e4c5ce9f714898e05401a0445a641cfa276432b0a648c80856f6a3f"
+    },
+    {
+      "path": "licenses/rfc3987-syntax-0-LICENSE",
+      "sha256": "50eefaee3617ed933720bd1c13c601ae84a43f273c157e25b595ff177b3491dd",
+      "source": "https://files.pythonhosted.org/packages/7e/71/44ce230e1b7fadd372515a97e32a83011f906ddded8d03e3c6aafbdedbb7/rfc3987_syntax-1.1.0-py3-none-any.whl#rfc3987_syntax-1.1.0.dist-info/licenses/LICENSE",
+      "kind": "license"
+    },
+    {
+      "path": "wheels/lark-1.2.2-py3-none-any.whl",
+      "sha256": "c2276486b02f0f1b90be155f2c8ba4a8e194d42775786db622faccd652d8e80c",
+      "source": "https://files.pythonhosted.org/packages/2d/00/d90b10b962b4277f5e64a78b6609968859ff86889f5b898c1a778c06ec00/lark-1.2.2-py3-none-any.whl",
+      "kind": "wheel",
+      "package": "lark",
+      "version": "1.2.2",
+      "pypi_sha256": "c2276486b02f0f1b90be155f2c8ba4a8e194d42775786db622faccd652d8e80c"
+    },
+    {
+      "path": "licenses/lark-0-LICENSE",
+      "sha256": "2eee60f52d4e11357bf89e72b034d050e285e47fda1361e5662fb322ee27d771",
+      "source": "https://files.pythonhosted.org/packages/2d/00/d90b10b962b4277f5e64a78b6609968859ff86889f5b898c1a778c06ec00/lark-1.2.2-py3-none-any.whl#lark-1.2.2.dist-info/LICENSE",
+      "kind": "license"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/docker-provider/v1alpha1",
+  "title": "PAO private Docker provider configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "docker_path",
+    "docker_sha256",
+    "runtime_image",
+    "runtime_approval"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "pao.dev/docker-provider/v1alpha1"
+    },
+    "docker_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "docker_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "runtime_image": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "runtime_approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "owner",
+        "evidence_digest",
+        "expires_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "$comment": "Runtime additionally requires current approval, safe absolute local Docker CLI path, exact file hash and supported Docker Desktop Linux VM identity. This schema does not certify host isolation."
+}

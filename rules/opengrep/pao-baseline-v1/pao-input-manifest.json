@@ -1,0 +1,19 @@
+{
+  "api_version": "pao.dev/input-capsule/v1alpha1",
+  "adapter_id": "opengrep",
+  "kind": "rule-pack",
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "03a8162174763f446ea2bb3a65826c82eeec45c76ed3557d8d097d43c3cbc50a"
+    },
+    {
+      "path": "README.md",
+      "sha256": "dff3d4d76ad5fcc59e57fc7e7f94a1c217e98427ae13dc6964a8a1409e47d4a6"
+    },
+    {
+      "path": "rules.yml",
+      "sha256": "c18af92cb481ec31357689ee0ec75be99734d76fd8b15c0bdceb64ff7dfa824a"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# Preserve exact source and pinned artifact bytes across checkouts.
+* -text
+# Go formatting is canonical only with LF line endings on every runner.
+*.go text eol=lf

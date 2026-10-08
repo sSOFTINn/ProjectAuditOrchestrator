@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/local-audit-config/v2",
+  "title": "PAO portable external operator configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "target", "evidence_base", "report_base", "toolchain_root", "manifest_root", "toolchain_catalog"],
+  "properties": {
+    "version": {"const": "pao.dev/local-audit-config/v2"},
+    "target": {"type": "string", "minLength": 1},
+    "evidence_base": {"type": "string", "minLength": 1},
+    "report_base": {"type": "string", "minLength": 1},
+    "toolchain_root": {"type": "string", "minLength": 1},
+    "manifest_root": {"type": "string", "minLength": 1},
+    "toolchain_catalog": {"type": "string", "minLength": 1},
+    "rule_pack_root": {"type": "string"},
+    "docker_base_provider": {"type": "string"},
+    "docker_scancode_provider": {"type": "string"}
+  },
+  "$comment": "Runtime rejects duplicate and case-variant keys, nulls, invalid UTF-8, input above 64 KiB, unsafe paths and overlaps. A selected applicable tool requires its provider and prerequisite roots. Catalog approval is separate and never created by PAO. Profile is required on the CLI."
+}

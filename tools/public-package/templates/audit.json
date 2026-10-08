@@ -1,0 +1,12 @@
+{
+  "version": "pao.dev/local-audit-config/v2",
+  "target": "REPLACE_WITH_ABSOLUTE_TARGET_DIRECTORY",
+  "evidence_base": "REPLACE_WITH_SEPARATE_PRIVATE_EVIDENCE_DIRECTORY",
+  "report_base": "REPLACE_WITH_SEPARATE_REPORT_DIRECTORY",
+  "toolchain_root": "REPLACE_WITH_PRIVATE_INSTALLED_TOOLS_DIRECTORY",
+  "manifest_root": "REPLACE_WITH_PACKAGE_ADAPTERS_DIRECTORY",
+  "toolchain_catalog": "REPLACE_WITH_ABSOLUTE_PRIVATE_CATALOG_FILE",
+  "docker_base_provider": "REPLACE_WITH_ABSOLUTE_PRIVATE_PROVIDER_FILE",
+  "docker_scancode_provider": "",
+  "rule_pack_root": ""
+}

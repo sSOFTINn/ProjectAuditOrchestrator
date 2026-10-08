@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/local-audit-config/v1",
+  "title": "PAO external operator configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "target", "evidence_base", "report_base", "toolchain_root", "rule_pack_root", "manifest_root", "docker_base_provider", "docker_scancode_provider"],
+  "properties": {
+    "version": {"const": "pao.dev/local-audit-config/v1"},
+    "target": {"type": "string", "minLength": 1},
+    "evidence_base": {"type": "string", "minLength": 1},
+    "report_base": {"type": "string", "minLength": 1},
+    "toolchain_root": {"type": "string", "minLength": 1},
+    "rule_pack_root": {"type": "string", "minLength": 1},
+    "manifest_root": {"type": "string", "minLength": 1},
+    "docker_base_provider": {"type": "string", "minLength": 1},
+    "docker_scancode_provider": {"type": "string", "minLength": 1}
+  },
+  "$comment": "The runtime additionally rejects duplicate keys, invalid UTF-8, input above 64 KiB, non-local/unclean/redirected paths, missing input directories and overlaps. Profile is required on the CLI each time."
+}

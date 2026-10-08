@@ -1,0 +1,17 @@
+{
+  "version": "pao.dev/finding/v1alpha1",
+  "finding_id": "finding-syft-fixture-library-1.2.3",
+  "stable_fingerprint": "f0b5b8e412a9dd5ab4d7f35be8eb8a5c2f1d0a4aa7a5c59c6f7713b1f3a4afdd",
+  "category": "inventory",
+  "title": "fixture-library 1.2.3",
+  "status": "OPEN",
+  "severity": "INFO",
+  "confidence": "HIGH",
+  "scanner_id": "syft",
+  "scanner_version": "synthetic",
+  "target_id": "sha256:synthetic-target",
+  "locations": [{"uri": "go.mod", "line": 1}],
+  "evidence_refs": ["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+  "raw_result_ref": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "tool_execution_id": "execution-synthetic"
+}

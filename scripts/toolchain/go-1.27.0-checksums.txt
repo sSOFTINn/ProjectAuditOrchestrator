@@ -1,0 +1,3 @@
+# Official Go distribution checksum pin for PAO development.
+# Source: https://go.dev/dl/
+f0c0a0d33ba94f4d2c5dbc887334ce678b21813504ddb3aafcb06e60a5a667c4  go1.27.0.windows-amd64.zip

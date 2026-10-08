@@ -1,0 +1,1 @@
+{"findings":[{"RuleID":"synthetic-api-key","File":"src/config.go","Secret":"***","Redacted":true}]}

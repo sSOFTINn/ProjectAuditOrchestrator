@@ -1,0 +1,12 @@
+{
+  "api_version": "pao.dev/docker-provider/v1alpha1",
+  "docker_path": "REPLACE_WITH_ABSOLUTE_DOCKER_CLI_PATH",
+  "docker_sha256": "REPLACE_WITH_SHA256_PREFIX_AND_64_HEX_DIGITS",
+  "runtime_image": "REPLACE_WITH_APPROVED_LOCAL_IMAGE_SHA256_ID",
+  "runtime_approval": {
+    "id": "UNAPPROVED",
+    "owner": "UNAPPROVED",
+    "evidence_digest": "REPLACE_WITH_REVIEW_EVIDENCE_SHA256",
+    "expires_at": "1970-01-01T00:00:00Z"
+  }
+}

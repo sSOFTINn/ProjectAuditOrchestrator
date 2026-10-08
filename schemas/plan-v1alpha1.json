@@ -1,0 +1,497 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/plan/v1alpha1",
+  "title": "PAO capability plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "profile",
+    "target_id",
+    "detected",
+    "required_capabilities",
+    "nodes",
+    "network",
+    "writes_target",
+    "executes_target_code",
+    "dry_run",
+    "inputs",
+    "outputs",
+    "sandbox",
+    "coverage_status",
+    "plan_digest"
+  ],
+  "properties": {
+    "version": {
+      "const": "pao.dev/plan/v1alpha1"
+    },
+    "profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "detected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "languages",
+        "artifacts",
+        "capabilities",
+        "indicators"
+      ],
+      "properties": {
+        "languages": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "artifacts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "capabilities": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "indicators": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expected_ecosystems": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Go",
+              "PyPI",
+              "npm",
+              "crates.io",
+              "GitHubActions"
+            ]
+          }
+        },
+        "dependency_inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ecosystem",
+              "format",
+              "scope",
+              "support"
+            ],
+            "properties": {
+              "ecosystem": {
+                "type": "string",
+                "enum": [
+                  "Go",
+                  "PyPI",
+                  "npm",
+                  "crates.io",
+                  "GitHubActions"
+                ]
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "go.mod",
+                  "go.sum",
+                  "package.json",
+                  "package-lock.json",
+                  "yarn.lock",
+                  "pnpm-lock.yaml",
+                  "pyproject.toml",
+                  "requirements.txt",
+                  "poetry.lock",
+                  "pipfile.lock",
+                  "uv.lock",
+                  "requirements.lock",
+                  "build-requirements.lock",
+                  "cargo.toml",
+                  "cargo.lock"
+                ]
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "unspecified",
+                  "build"
+                ]
+              },
+              "support": {
+                "type": "string",
+                "enum": [
+                  "FORMAT_RECOGNIZED",
+                  "UNSUPPORTED_INPUT_FORMAT"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "capability",
+          "status",
+          "network",
+          "writes_target",
+          "executes_target_code",
+          "tool_digest",
+          "manifest_digest",
+          "config_digest",
+          "inputs",
+          "outputs",
+          "coverage_status",
+          "sandbox"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "UNAVAILABLE",
+              "AVAILABLE_NOT_STARTED",
+              "PREFLIGHT_REQUIRED",
+              "SKIPPED_NOT_APPLICABLE",
+              "UNSUPPORTED"
+            ]
+          },
+          "command": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "network": {
+            "const": "never-during-audit"
+          },
+          "writes_target": {
+            "const": false
+          },
+          "executes_target_code": {
+            "const": false
+          },
+          "tool_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "const": "UNVERIFIED"
+              }
+            ]
+          },
+          "manifest_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "config_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "state_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "const": "UNVERIFIED"
+              }
+            ]
+          },
+          "runtime_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "const": "UNVERIFIED"
+              }
+            ]
+          },
+          "rule_pack_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "const": "UNVERIFIED"
+              }
+            ]
+          },
+          "license_data_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              {
+                "const": "UNVERIFIED"
+              }
+            ]
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": [
+              "PARTIAL",
+              "COMPLETE"
+            ]
+          },
+          "applicability": {
+            "type": "string",
+            "enum": [
+              "APPLICABLE",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "support_status": {
+            "type": "string",
+            "enum": [
+              "DECLARED",
+              "SUPPORTED",
+              "PARTIAL",
+              "UNSUPPORTED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "support_reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "supported_ecosystems": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Go",
+                "PyPI",
+                "npm",
+                "crates.io",
+                "GitHubActions"
+              ]
+            }
+          },
+          "unsupported_ecosystems": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Go",
+                "PyPI",
+                "npm",
+                "crates.io",
+                "GitHubActions"
+              ]
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "sandbox": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "isolation",
+              "network",
+              "target_access",
+              "temporary_write_only",
+              "environment_sanitized",
+              "process_tree_controlled",
+              "cpu_limited",
+              "memory_limited",
+              "clean_runtime"
+            ],
+            "properties": {
+              "isolation": {
+                "const": "container-vm"
+              },
+              "network": {
+                "const": "denied"
+              },
+              "target_access": {
+                "const": "read-only"
+              },
+              "temporary_write_only": {
+                "const": true
+              },
+              "environment_sanitized": {
+                "const": true
+              },
+              "process_tree_controlled": {
+                "const": true
+              },
+              "cpu_limited": {
+                "const": true
+              },
+              "memory_limited": {
+                "const": true
+              },
+              "clean_runtime": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "const": "denied"
+    },
+    "writes_target": {
+      "const": false
+    },
+    "executes_target_code": {
+      "const": false
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "isolation",
+        "network",
+        "target_access",
+        "temporary_write_only",
+        "environment_sanitized",
+        "process_tree_controlled",
+        "cpu_limited",
+        "memory_limited",
+        "clean_runtime"
+      ],
+      "properties": {
+        "isolation": {
+          "const": "container-vm"
+        },
+        "network": {
+          "const": "denied"
+        },
+        "target_access": {
+          "const": "read-only"
+        },
+        "temporary_write_only": {
+          "const": true
+        },
+        "environment_sanitized": {
+          "const": true
+        },
+        "process_tree_controlled": {
+          "const": true
+        },
+        "cpu_limited": {
+          "const": true
+        },
+        "memory_limited": {
+          "const": true
+        },
+        "clean_runtime": {
+          "const": true
+        }
+      }
+    },
+    "coverage_status": {
+      "type": "string",
+      "enum": [
+        "PARTIAL",
+        "COMPLETE"
+      ]
+    },
+    "plan_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "configuration_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "$comment": "The sandbox object describes requirements, not proof of host enforcement. v1alpha1 detection arrays preserve null for no observations. Runtime hash, filesystem, approval and applicability checks remain necessary."
+}

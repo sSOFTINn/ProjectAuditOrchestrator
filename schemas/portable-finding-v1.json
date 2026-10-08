@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/portable-finding/v1",
+  "title": "PAO experimental library JSONL finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "finding_id",
+    "stable_fingerprint",
+    "category",
+    "title",
+    "status",
+    "severity",
+    "confidence",
+    "scanner_id",
+    "target_id",
+    "protected_evidence_count"
+  ],
+  "properties": {
+    "finding_id": {
+      "type": "string",
+      "pattern": "^finding-[a-z0-9][a-z0-9._:-]{0,127}$"
+    },
+    "stable_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "inventory",
+        "vulnerability",
+        "license",
+        "secret",
+        "sast",
+        "iac",
+        "configuration",
+        "provenance"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "SUPPRESSED",
+        "FIXED",
+        "MANUAL_REVIEW",
+        "CONFLICT"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "INFO",
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ]
+    },
+    "scanner_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protected_evidence_count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$comment": "Experimental internal/report helper shape. The stable configured CLI unified-report-v1 is a separate contract."
+}

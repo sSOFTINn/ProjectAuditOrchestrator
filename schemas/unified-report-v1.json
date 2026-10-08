@@ -1,0 +1,512 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/unified-report/v1",
+  "title": "PAO public unified report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "parser_version",
+    "plan_digest",
+    "target_id",
+    "status",
+    "coverage_complete",
+    "analysis_coverage_complete",
+    "inventory_coverage",
+    "inventory_observations",
+    "security_findings",
+    "license_observations",
+    "license_questions",
+    "security_severities",
+    "coverage",
+    "findings",
+    "next_actions",
+    "limitations",
+    "run_producer_status",
+    "report_producer_status"
+  ],
+  "properties": {
+    "version": {
+      "const": "pao.dev/unified-report/v1"
+    },
+    "parser_version": {
+      "const": "pao-native-projection/5"
+    },
+    "plan_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "REVIEW_REQUIRED",
+        "INCOMPLETE",
+        "POLICY_BLOCKED"
+      ]
+    },
+    "coverage_complete": {
+      "type": "boolean"
+    },
+    "analysis_coverage_complete": {
+      "type": "boolean"
+    },
+    "inventory_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "adequate_for_detected_inputs",
+        "expected_ecosystems",
+        "observed_ecosystems",
+        "gaps",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PARTIAL",
+            "ADEQUATE_FOR_DETECTED_ECOSYSTEMS",
+            "NO_DETECTED_DEPENDENCY_INPUTS"
+          ]
+        },
+        "adequate_for_detected_inputs": {
+          "type": "boolean"
+        },
+        "expected_ecosystems": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Go",
+              "PyPI",
+              "npm",
+              "crates.io",
+              "GitHubActions"
+            ]
+          }
+        },
+        "observed_ecosystems": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Go",
+              "PyPI",
+              "npm",
+              "crates.io",
+              "GitHubActions"
+            ]
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reason_code"
+            ],
+            "properties": {
+              "ecosystem": {
+                "type": "string",
+                "enum": [
+                  "Go",
+                  "PyPI",
+                  "npm",
+                  "crates.io",
+                  "GitHubActions"
+                ]
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "go.mod",
+                  "go.sum",
+                  "package.json",
+                  "package-lock.json",
+                  "yarn.lock",
+                  "pnpm-lock.yaml",
+                  "pyproject.toml",
+                  "requirements.txt",
+                  "poetry.lock",
+                  "pipfile.lock",
+                  "uv.lock",
+                  "requirements.lock",
+                  "build-requirements.lock",
+                  "cargo.toml",
+                  "cargo.lock"
+                ]
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "unspecified",
+                  "build"
+                ]
+              },
+              "reason_code": {
+                "type": "string",
+                "enum": [
+                  "UNRECOGNIZED_INVENTORY_EXPECTATION",
+                  "INVENTORY_ECOSYSTEM_AMBIGUOUS",
+                  "UNSUPPORTED_INPUT_FORMAT",
+                  "INVENTORY_EXPECTATIONS_NOT_RECORDED",
+                  "INVENTORY_EVIDENCE_UNAVAILABLE",
+                  "EXPECTED_ECOSYSTEM_NOT_OBSERVED",
+                  "INVENTORY_VERSION_MISSING",
+                  "SBOM_INVENTORY_MISMATCH"
+                ]
+              }
+            }
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "inventory_observations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "security_findings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "license_observations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "license_questions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sbom_quality_scores": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 10
+      }
+    },
+    "sbom_quality_missing_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "component-name",
+          "component-version",
+          "component-license",
+          "component-supplier"
+        ]
+      }
+    },
+    "security_severities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "UNKNOWN",
+        "INFO",
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "properties": {
+        "UNKNOWN": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "INFO": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "LOW": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "MEDIUM": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "HIGH": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "CRITICAL": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scanner",
+          "execution_status",
+          "parsing_status",
+          "observations",
+          "complete",
+          "applicability",
+          "support_status"
+        ],
+        "properties": {
+          "scanner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "execution_status": {
+            "type": "string",
+            "enum": [
+              "MISSING",
+              "INVALID",
+              "SUCCEEDED",
+              "NO_FINDINGS",
+              "FAILED",
+              "TIMED_OUT",
+              "PARTIAL",
+              "UNAVAILABLE",
+              "POLICY_BLOCKED",
+              "UNSUPPORTED",
+              "NOT_STARTED"
+            ]
+          },
+          "parsing_status": {
+            "type": "string",
+            "enum": [
+              "PARSED",
+              "PARTIAL",
+              "MALFORMED_OUTPUT",
+              "NOT_AVAILABLE",
+              "NOT_APPLICABLE",
+              "EVIDENCE_REJECTED",
+              "UNSUPPORTED_FORMAT",
+              "UNSUPPORTED_INPUT"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "diagnostic_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "diagnostics_available": {
+            "type": "boolean"
+          },
+          "applicability": {
+            "type": "string",
+            "enum": [
+              "APPLICABLE",
+              "NOT_APPLICABLE",
+              "NOT_RECORDED"
+            ]
+          },
+          "support_status": {
+            "type": "string",
+            "enum": [
+              "DECLARED",
+              "SUPPORTED",
+              "PARTIAL",
+              "UNSUPPORTED",
+              "NOT_APPLICABLE",
+              "NOT_RECORDED"
+            ]
+          },
+          "support_reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "scanner",
+          "category",
+          "severity",
+          "evidence_ref"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^finding-[a-z0-9][a-z0-9._:-]{0,127}$"
+          },
+          "scanner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "inventory",
+              "vulnerability",
+              "license",
+              "secret",
+              "sast",
+              "iac",
+              "configuration",
+              "provenance"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "INFO",
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "public_advisory": {
+            "type": "string",
+            "pattern": "^(CVE-[0-9]{4}-[0-9]{4,12}|GHSA-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4})$"
+          },
+          "evidence_ref": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "run_producer": {
+      "$ref": "https://pao.dev/schemas/producer/v1"
+    },
+    "run_producer_status": {
+      "enum": [
+        "UNKNOWN_HISTORICAL",
+        "RECORDED",
+        "INVALID"
+      ]
+    },
+    "report_producer": {
+      "$ref": "https://pao.dev/schemas/producer/v1"
+    },
+    "report_producer_status": {
+      "enum": [
+        "UNAVAILABLE",
+        "RECORDED"
+      ]
+    }
+  },
+  "$comment": "The public SUMMARY JSON contract only. Private result.private.json is a separate internal evidence representation. Schema validity is not complete inventory, scanner correctness, evidence integrity or release approval.",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "run_producer_status": {
+            "const": "RECORDED"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "run_producer"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "run_producer"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "report_producer_status": {
+            "const": "RECORDED"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "report_producer"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "report_producer"
+          ]
+        }
+      }
+    }
+  ]
+}

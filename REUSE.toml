@@ -1,0 +1,78 @@
+version = 1
+
+[[annotations]]
+path = [
+    "**/*.md", "**/*.json", "**/*.yaml", "**/*.yml", "**/*.toml", "**/*.go", "**/*.ps1", "**/*.sh", "**/*.py",
+    ".dockerignore", ".gitattributes", ".gitignore", "go.mod", "NOTICE",
+    "runtime/Dockerfile", "runtime/Dockerfile.data-prep", "runtime/Dockerfile.scancode-synthetic",
+    "scripts/toolchain/go-1.27.0-checksums.txt", "scripts/toolchain/go-1.27.1-checksums.txt",
+    "testdata/container-vm-fixture/Dockerfile", "testdata/opengrep-baseline/javascript/vulnerable.js",
+]
+SPDX-FileCopyrightText = "2026 Project Audit Orchestrator contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["schemas/vendor/cyclonedx/bom-1.5.schema.json", "schemas/vendor/cyclonedx/spdx.schema.json", "schemas/vendor/licenses/CycloneDX-LICENSE.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "OWASP Foundation"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["schemas/vendor/cyclonedx/jsf-0.82.schema.json"]
+precedence = "override"
+SPDX-FileCopyrightText = "Anders Rundgren"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["schemas/vendor/spdx/spdx-2.3.schema.json", "schemas/vendor/licenses/SPDX-LICENSE.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2010-2022 Linux Foundation and its Contributors"
+SPDX-License-Identifier = "CC-BY-3.0"
+
+[[annotations]]
+path = ["schemas/vendor/sarif/sarif-2.1.0.schema.json", "schemas/vendor/licenses/OASIS-SARIF-NOTICES.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2020 OASIS Open"
+SPDX-License-Identifier = "LicenseRef-OASIS-SARIF"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/jsonschema-4.17.3-py3-none-any.whl", "schemas/vendor/licenses/jsonschema-0-COPYING"]
+precedence = "override"
+SPDX-FileCopyrightText = "2013 Julian Berman"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/attrs-23.2.0-py3-none-any.whl", "schemas/vendor/licenses/attrs-0-LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2015 Hynek Schlawack and the attrs contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/pyrsistent-0.20.0-py3-none-any.whl", "schemas/vendor/licenses/pyrsistent-0-LICENSE.mit"]
+precedence = "override"
+SPDX-FileCopyrightText = "2023 Tobias Gustafsson"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/lark-1.2.2-py3-none-any.whl", "schemas/vendor/licenses/lark-0-LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2017 Erez Shinan"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/rfc3339_validator-0.1.4-py2.py3-none-any.whl", "schemas/vendor/licenses/rfc3339-validator-0-LICENSE", "schemas/vendor/wheels/rfc3986_validator-0.1.1-py2.py3-none-any.whl", "schemas/vendor/licenses/rfc3986-validator-0-LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2019 Nicolas Aimetti"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/rfc3987_syntax-1.1.0-py3-none-any.whl", "schemas/vendor/licenses/rfc3987-syntax-0-LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2025 Will Riley"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["schemas/vendor/wheels/six-1.17.0-py2.py3-none-any.whl", "schemas/vendor/licenses/six-0-LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2010-2024 Benjamin Peterson"
+SPDX-License-Identifier = "MIT"

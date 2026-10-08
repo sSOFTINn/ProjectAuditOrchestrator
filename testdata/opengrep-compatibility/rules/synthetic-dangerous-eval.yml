@@ -1,0 +1,6 @@
+rules:
+  - id: synthetic-dangerous-eval
+    languages: [python]
+    severity: ERROR
+    message: Synthetic compatibility finding; do not use eval on untrusted input.
+    pattern: eval(...)

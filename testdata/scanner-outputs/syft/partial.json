@@ -1,0 +1,8 @@
+{
+  "schema": {"version": "16.1.0"},
+  "artifacts": [
+    {"name": "fixture-library", "version": "1.2.3", "type": "go-module", "foundBy": "go-mod-file-cataloger"}
+  ],
+  "source": {"type": "directory", "target": "synthetic-target"},
+  "descriptor": {"configuration": {"notes": ["synthetic incomplete cataloger coverage"]}}
+}

@@ -1,0 +1,121 @@
+name: release-verification
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Candidate version without a leading v; never publishes a release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+  GOPROXY: off
+  GOSUMDB: off
+
+jobs:
+  build:
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.source.outputs.version }}
+      commit: ${{ steps.source.outputs.commit }}
+      artifact-id: ${{ steps.candidate.outputs.artifact-id }}
+      artifact-digest: ${{ steps.candidate.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prepare the explicitly pinned Go runtime
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          check-latest: false
+          cache: false
+      - name: Bind the candidate to the triggering source commit
+        id: source
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          $commit = (& git rev-parse --verify 'HEAD^{commit}').Trim()
+          if ($LASTEXITCODE -ne 0 -or $commit -cne $env:GITHUB_SHA -or $commit -cnotmatch '^[0-9a-f]{40}$') { throw 'Checkout differs from the triggering commit.' }
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.Substring(1) } else { $env:RELEASE_VERSION }
+          if ($version -cnotmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid candidate version.' }
+          if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -cne "refs/tags/v$version") { throw 'Release push requires the exact version tag.' }
+          if ($version -notmatch '-') {
+            $mainCommit = (& git rev-parse --verify 'refs/remotes/origin/main^{commit}').Trim()
+            if ($LASTEXITCODE -ne 0 -or $mainCommit -cne $commit) { throw 'Stable candidate must equal the fetched main commit.' }
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "commit=$commit" >> $env:GITHUB_OUTPUT
+      - name: Verify workflow permission, ref and transfer contracts offline
+        shell: pwsh
+        run: |
+          python -I -B scripts/workflow-security/test_contracts.py --repo $env:GITHUB_WORKSPACE --scratch (Join-Path $env:RUNNER_TEMP 'pao-workflow-tests')
+          if ($LASTEXITCODE -ne 0) { throw 'Workflow contract validation failed.' }
+      - name: Test source and package composition offline
+        shell: pwsh
+        run: |
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { throw 'Go tests failed.' }
+          go vet ./...
+          if ($LASTEXITCODE -ne 0) { throw 'Go vet failed.' }
+          go run ./scripts/schema/corpus -repo $env:GITHUB_WORKSPACE -out (Join-Path $env:RUNNER_TEMP 'pao-schema-corpus')
+          if ($LASTEXITCODE -ne 0) { throw 'Schema corpus generation failed.' }
+          python -I -B scripts/schema/validate.py --corpus (Join-Path $env:RUNNER_TEMP 'pao-schema-corpus') --scratch (Join-Path $env:RUNNER_TEMP 'pao-schema-validation')
+          if ($LASTEXITCODE -ne 0) { throw 'Offline schema validation failed.' }
+          python -I -B scripts/schema/test_validator.py --corpus (Join-Path $env:RUNNER_TEMP 'pao-schema-corpus') --scratch (Join-Path $env:RUNNER_TEMP 'pao-schema-tests')
+          if ($LASTEXITCODE -ne 0) { throw 'Schema rejection tests failed.' }
+      - name: Build twice from the exact source with separate fresh outputs and caches
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+        run: |
+          $asOf = [datetime](& git show -s --format=%cI HEAD)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read source timestamp.' }
+          $env:GOCACHE = Join-Path $env:RUNNER_TEMP 'pao-release-first-go-cache'
+          ./scripts/release/build-public-package.ps1 -OutputPath (Join-Path $env:RUNNER_TEMP 'pao-release-first') -Version $env:RELEASE_VERSION -AsOf $asOf -GoPath (Get-Command go).Source
+          $env:GOCACHE = Join-Path $env:RUNNER_TEMP 'pao-release-second-go-cache'
+          ./scripts/release/build-public-package.ps1 -OutputPath (Join-Path $env:RUNNER_TEMP 'pao-release-second') -Version $env:RELEASE_VERSION -AsOf $asOf -GoPath (Get-Command go).Source
+      - name: Require byte-identical public archives and checksums
+        shell: pwsh
+        run: |
+          ./scripts/release/compare-public-builds.ps1 -FirstDistributionPath (Join-Path $env:RUNNER_TEMP 'pao-release-first/dist') -SecondDistributionPath (Join-Path $env:RUNNER_TEMP 'pao-release-second/dist')
+      - name: Test metadata rejection without executing archive contents
+        shell: pwsh
+        run: |
+          ./scripts/release/test-release-metadata.ps1 -OutputBase (Join-Path $env:RUNNER_TEMP 'pao-release-tests') -GoPath (Get-Command go).Source -FixtureDistributionPath (Join-Path $env:RUNNER_TEMP 'pao-release-first/dist') -FixtureEvidencePath (Join-Path $env:RUNNER_TEMP 'pao-release-first/evidence') -PackageVerifierPath (Join-Path $env:RUNNER_TEMP 'pao-release-first/work/package-verifier.exe')
+      - name: Inspect immutable source and compare target digest only
+        shell: pwsh
+        run: |
+          ./scripts/release/self-audit.ps1 -PaoPath (Join-Path $env:RUNNER_TEMP 'pao-release-first/work/windows/pao.exe') -TargetPath . -OutputPath (Join-Path $env:RUNNER_TEMP 'pao-self-inspect.json')
+      - name: Seal only public candidate bytes using runner-local private metadata
+        id: transfer
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+        run: |
+          python -I -B scripts/workflow-security/transfer.py create --dist (Join-Path $env:RUNNER_TEMP 'pao-release-first/dist') --build-metadata (Join-Path $env:RUNNER_TEMP 'pao-release-first/evidence/BUILD-METADATA.json') --output (Join-Path $env:RUNNER_TEMP 'pao-release-transfer') --version $env:RELEASE_VERSION --repository $env:GITHUB_REPOSITORY --commit $env:GITHUB_SHA --ref $env:GITHUB_REF --run-id $env:GITHUB_RUN_ID --run-attempt $env:GITHUB_RUN_ATTEMPT --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate transfer sealing failed.' }
+      - name: Store only the immutable public files for review
+        id: candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pao-release-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: '${{ runner.temp }}/pao-release-transfer/payload'
+          if-no-files-found: error
+          overwrite: false
+          include-hidden-files: false
+          retention-days: 30
+      - name: Record the remaining owner and native-host gates
+        shell: pwsh
+        run: Write-Warning 'Verification prepares candidate bytes only. Native Windows 11 and Ubuntu 24.04 with exact Docker Desktop versions, required hosted checks before main merge, trusted signed tag and owner merge/publication approvals remain separate gates. Private evidence and the transfer manifest were not uploaded.'

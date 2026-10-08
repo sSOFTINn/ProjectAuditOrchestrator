@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/finding/v1alpha1",
+  "title": "PAO canonical finding",
+  "type": "object",
+  "required": ["version", "finding_id", "stable_fingerprint", "category", "title", "status", "severity", "confidence", "scanner_id", "target_id", "tool_execution_id", "raw_result_ref", "evidence_refs"],
+  "properties": {
+    "version": {"const": "pao.dev/finding/v1alpha1"},
+    "finding_id": {"type": "string", "pattern": "^finding-[a-z0-9][a-z0-9._:-]{0,127}$"},
+    "stable_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "category": {"type": "string", "enum": ["inventory", "vulnerability", "license", "secret", "sast", "iac", "configuration", "provenance"]},
+    "title": {"type": "string", "minLength": 1},
+    "description": {"type": "string"},
+    "status": {"type": "string", "enum": ["OPEN", "SUPPRESSED", "FIXED", "MANUAL_REVIEW", "CONFLICT"]},
+    "severity": {"type": "string", "enum": ["UNKNOWN", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]},
+    "confidence": {"type": "string", "enum": ["LOW", "MEDIUM", "HIGH"]},
+    "scanner_id": {"type": "string", "minLength": 1},
+    "scanner_version": {"type": "string"},
+    "rule_id": {"type": "string"},
+    "database_version": {"type": "string"},
+    "target_id": {"type": "string", "minLength": 1},
+    "config_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "locations": {"type": "array", "items": {"$ref": "#/$defs/location"}},
+    "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}},
+    "raw_result_ref": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "tool_execution_id": {"type": "string", "minLength": 1},
+    "assumption_ids": {"type": "array", "items": {"type": "string"}},
+    "correlation_group_id": {"type": "string"}
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "required": ["uri"],
+      "properties": {"uri": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\.\\.).+$"}, "line": {"type": "integer", "minimum": 0}, "column": {"type": "integer", "minimum": 0}},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

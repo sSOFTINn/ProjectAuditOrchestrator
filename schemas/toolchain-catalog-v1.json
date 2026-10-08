@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/toolchain-catalog/v1",
+  "title": "PAO private operator toolchain catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "owner",
+    "approved_at",
+    "expires_at",
+    "tools"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "pao.dev/toolchain-catalog/v1"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record",
+          "binary",
+          "provider"
+        ],
+        "properties": {
+          "record": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version",
+              "sha256",
+              "source_license",
+              "redistribution",
+              "runtime_sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "syft",
+                  "sbomqs",
+                  "grype",
+                  "osv-scanner",
+                  "trivy",
+                  "gitleaks",
+                  "scancode",
+                  "reuse",
+                  "opengrep",
+                  "zizmor"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "source_license": {
+                "type": "string",
+                "minLength": 1
+              },
+              "redistribution": {
+                "const": "user-installed-only"
+              },
+              "database_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "database_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "state_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "state_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "runtime_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "runtime_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "rule_pack_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "rule_pack_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "license_data_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "license_data_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "database_environment": {
+                "type": "object",
+                "propertyNames": {
+                  "pattern": "^[A-Z_][A-Z0-9_]*$"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^[^\u0000]*$"
+                }
+              },
+              "state_environment": {
+                "type": "object",
+                "propertyNames": {
+                  "pattern": "^[A-Z_][A-Z0-9_]*$"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^[^\u0000]*$"
+                }
+              }
+            }
+          },
+          "binary": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*[\u0000\r\n])(?!.*(^|/)\\.\\.?(/|$)).+$"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "base",
+              "scancode"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*[\u0000\r\n])(?!.*(^|/)\\.\\.?(/|$)).+$"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*[\u0000\r\n])(?!.*(^|/)\\.\\.?(/|$)).+$"
+          },
+          "state_entrypoint": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*[\u0000\r\n])(?!.*(^|/)\\.\\.?(/|$)).+$"
+          },
+          "rule_pack": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*[\u0000\r\n])(?!.*(^|/)\\.\\.?(/|$)).+$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "database_sha256"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "database"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "database"
+              ]
+            },
+            "then": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "database_sha256"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "state_sha256"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "state"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "state_sha256"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "rule_pack_sha256"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rule_pack"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "rule_pack"
+              ]
+            },
+            "then": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "rule_pack_sha256"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "properties": {
+                    "id": {
+                      "enum": [
+                        "grype",
+                        "osv-scanner",
+                        "trivy"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "database"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "properties": {
+                    "id": {
+                      "enum": [
+                        "scancode",
+                        "reuse",
+                        "opengrep"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "state"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "properties": {
+                    "id": {
+                      "enum": [
+                        "scancode",
+                        "reuse"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "state_entrypoint"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "properties": {
+                    "id": {
+                      "enum": [
+                        "opengrep"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rule_pack"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "state_entrypoint"
+              ]
+            },
+            "then": {
+              "required": [
+                "state"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "record": {
+                  "properties": {
+                    "id": {
+                      "const": "scancode"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "record": {
+                  "required": [
+                    "license_data_sha256"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$comment": "Data shape only. Runtime rejects unapproved/stale owners, duplicate tool identities, non-canonical relative paths, missing prerequisites, unverified hashes and unsafe filesystem state. JSON Schema does not authorize execution."
+}

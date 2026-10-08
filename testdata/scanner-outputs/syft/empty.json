@@ -1,0 +1,5 @@
+{
+  "schema": {"version": "16.1.0"},
+  "artifacts": [],
+  "source": {"type": "directory", "target": "synthetic-target"}
+}

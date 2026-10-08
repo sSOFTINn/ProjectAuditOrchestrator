@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/release-provenance/v1",
+  "title": "PAO release provenance v1 strict producer profile",
+  "description": "PAO-maintained JSON Schema for every field emitted by scripts/release/generate-release-metadata.ps1. Derived from SLSA provenance/v1 and in-toto Statement/v1 semantics; not an official upstream JSON Schema or a general-purpose SLSA consumer. Validation establishes the declared PAO document shape, not a SLSA level, authenticated builder, measured build times, complete dependencies, artifact integrity or signatures.",
+  "$comment": "Primary sources checked 2026-10-02: https://slsa.dev/spec/v1.2/build-provenance ; https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md ; https://github.com/in-toto/attestation/blob/main/spec/v1/resource_descriptor.md ; https://github.com/in-toto/attestation/blob/main/spec/v1/field_types.md ; https://github.com/in-toto/attestation/blob/main/spec/v1/digest_set.md . Unknown fields, nulls, exact resource counts, SHA-1 Git object identifiers, numeric hosted invocation IDs and known builder IDs are stricter PAO producer rules. Generic upstream consumers ignore unrecognized fields and support a broader vocabulary.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["_type", "subject", "predicateType", "predicate"],
+  "properties": {
+    "_type": {
+      "type": "string",
+      "format": "uri",
+      "const": "https://in-toto.io/Statement/v1"
+    },
+    "subject": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/releaseSubject"},
+      "allOf": [
+        {
+          "contains": {"type": "object", "required": ["name"], "properties": {"name": {"const": "BUILD-METADATA.json"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"type": "object", "required": ["name"], "properties": {"name": {"pattern": "-windows-amd64\\.zip$"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"type": "object", "required": ["name"], "properties": {"name": {"pattern": "-linux-amd64\\.tar\\.gz$"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"type": "object", "required": ["name"], "properties": {"name": {"pattern": "\\.cdx\\.json$"}}},
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "predicateType": {
+      "type": "string",
+      "format": "uri",
+      "const": "https://slsa.dev/provenance/v1"
+    },
+    "predicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["buildDefinition", "runDetails"],
+      "properties": {
+        "buildDefinition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["buildType", "externalParameters", "internalParameters", "resolvedDependencies"],
+          "properties": {
+            "buildType": {
+              "type": "string",
+              "format": "uri",
+              "const": "https://pao.dev/release/v1"
+            },
+            "externalParameters": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["version"],
+              "properties": {"version": {"$ref": "#/$defs/releaseVersion"}}
+            },
+            "internalParameters": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["go_version", "source_state", "source_tree_sha256"],
+              "properties": {
+                "go_version": {"$ref": "#/$defs/cleanString", "pattern": "^go[0-9]+\\.[0-9]+\\.[0-9]+$"},
+                "source_state": {"type": "string", "enum": ["clean", "modified"]},
+                "source_tree_sha256": {"$ref": "#/$defs/sha256"}
+              }
+            },
+            "resolvedDependencies": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": {"$ref": "#/$defs/sourceDependency"}
+            }
+          }
+        },
+        "runDetails": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["builder", "metadata"],
+          "properties": {
+            "builder": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uri",
+                  "enum": [
+                    "https://pao.dev/release/local-metadata-generator/v1",
+                    "https://github.com/sSOFTINn/ProjectAuditOrchestrator/.github/workflows/release.yml"
+                  ]
+                }
+              }
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["startedOn", "finishedOn"],
+              "properties": {
+                "startedOn": {"$ref": "#/$defs/utcTimestamp"},
+                "finishedOn": {"$ref": "#/$defs/utcTimestamp"},
+                "invocationId": {"$ref": "#/$defs/cleanString", "pattern": "^[0-9]+$"}
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "required": ["builder"],
+                "properties": {
+                  "builder": {
+                    "required": ["id"],
+                    "properties": {"id": {"const": "https://github.com/sSOFTINn/ProjectAuditOrchestrator/.github/workflows/release.yml"}}
+                  }
+                }
+              },
+              "then": {"properties": {"metadata": {"required": ["invocationId"]}}},
+              "else": {"properties": {"metadata": {"not": {"required": ["invocationId"]}}}}
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "cleanString": {"type": "string", "minLength": 1, "not": {"pattern": "[\\u0000-\\u001f\\u007f]"}},
+    "releaseVersion": {"$ref": "#/$defs/cleanString", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+    "sha256": {"type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$"},
+    "utcTimestamp": {
+      "$ref": "#/$defs/cleanString",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+    },
+    "sha256Digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256"],
+      "properties": {"sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "releaseSubject": {
+      "description": "PAO profile of an in-toto ResourceDescriptor: exactly the output filename and immutable SHA-256 digest.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "digest"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/cleanString",
+          "anyOf": [
+            {"const": "BUILD-METADATA.json"},
+            {"pattern": "^pao-[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?-windows-amd64\\.zip$"},
+            {"pattern": "^pao-[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?-linux-amd64\\.tar\\.gz$"},
+            {"pattern": "^pao-[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?\\.cdx\\.json$"}
+          ]
+        },
+        "digest": {"$ref": "#/$defs/sha256Digest"}
+      }
+    },
+    "sourceDependency": {
+      "description": "PAO profile of an in-toto ResourceDescriptor for the SHA-1 Git source revision recorded by the current generator; upstream gitCommit also permits SHA-256 Git repositories.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "digest"],
+      "properties": {
+        "uri": {"type": "string", "format": "uri", "const": "git+https://github.com/sSOFTINn/ProjectAuditOrchestrator"},
+        "digest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["gitCommit"],
+          "properties": {"gitCommit": {"type": "string", "minLength": 40, "maxLength": 40, "pattern": "^[0-9a-f]{40}$"}}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# ScanCode is the only PAO adapter that currently needs Python. This candidate
+# is intentionally separate from the minimal common PAO runtime.
+FROM python:3.12-slim@sha256:2fe5997d249a808b8eeea52c58a1dbffbba28754dc11699ef5c029f2d818ce79
+
+LABEL org.opencontainers.image.title="PAO ScanCode synthetic preparation runtime"
+LABEL org.opencontainers.image.description="Pinned Python 3.12 candidate for isolated ScanCode preparation and synthetic verification only"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_INPUT=1
+
+# ScanCode launchers require bash. Its bundled libarchive also requires libgomp1;
+# Python 3.12 is supplied by the pinned base.
+RUN apt-get update \
+    && apt-get install --no-install-recommends --yes bash libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
