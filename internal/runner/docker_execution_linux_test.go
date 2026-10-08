@@ -29,10 +29,14 @@ func TestPreparedDockerControlUsesFrozenNativeCLI(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
+	privateParent := t.TempDir()
+	if err := os.Chmod(privateParent, 0o700); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := host.command(ctx, "image", "ls"); err == nil || !strings.Contains(err.Error(), "native executable pinning cannot exclude Unix writers") {
 		t.Fatalf("unprepared native control path was not refused: %v", err)
 	}
-	if _, release, err := (DockerHost{DockerPath: source, DockerSHA256: "sha256:" + strings.Repeat("0", 64), SandboxPath: source, SandboxSHA256: digest}).prepareExecution(ctx, ExecutionSpec{TemporaryDir: filepath.Join(t.TempDir(), "scratch")}); err == nil || release != nil {
+	if _, release, err := (DockerHost{DockerPath: source, DockerSHA256: "sha256:" + strings.Repeat("0", 64), SandboxPath: source, SandboxSHA256: digest}).prepareExecution(ctx, ExecutionSpec{TemporaryDir: filepath.Join(privateParent, "scratch")}); err == nil || release != nil || !strings.Contains(err.Error(), "native frozen executable digest mismatch") {
 		t.Fatalf("incorrect native digest was accepted: %v", err)
 	}
 	publicParent := filepath.Join(t.TempDir(), "public")
@@ -46,7 +50,7 @@ func TestPreparedDockerControlUsesFrozenNativeCLI(t *testing.T) {
 		t.Fatalf("mutable frozen-input parent was accepted: %v", err)
 	}
 
-	prepared, release, err := host.prepareExecution(ctx, ExecutionSpec{TemporaryDir: filepath.Join(t.TempDir(), "scratch")})
+	prepared, release, err := host.prepareExecution(ctx, ExecutionSpec{TemporaryDir: filepath.Join(privateParent, "scratch")})
 	if err != nil {
 		t.Fatal(err)
 	}

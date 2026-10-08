@@ -420,6 +420,9 @@ func TestFrozenExecutableRunsApprovedBytesAfterOriginalReplacement(t *testing.T)
 		t.Fatal(err)
 	}
 	parent := t.TempDir()
+	if err := os.Chmod(parent, 0o700); err != nil {
+		t.Fatal(err)
+	}
 	name := "inert-helper"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
