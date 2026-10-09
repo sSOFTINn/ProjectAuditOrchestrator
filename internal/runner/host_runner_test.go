@@ -178,7 +178,7 @@ func TestHostRunnerBindsScanCodeStateEntrypointAndEnvironmentBeforeLaunch(t *tes
 	}
 	spec.OutputFile = "scancode.json"
 	spec.OutputMediaType = "application/json"
-	spec.Arguments = []string{"--license", "--copyright", "--package", "--json", filepath.Join(spec.TemporaryDir, spec.OutputFile), spec.TargetRoot}
+	spec.Arguments = []string{"--license", "--copyright", "--package", "--processes", "1", "--timeout", "300", "--json", filepath.Join(spec.TemporaryDir, spec.OutputFile), spec.TargetRoot}
 	toolBytes, err := os.ReadFile(spec.ToolPath)
 	if err != nil {
 		t.Fatal(err)

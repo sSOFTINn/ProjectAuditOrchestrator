@@ -192,7 +192,9 @@ func executeAudit(ctx context.Context, paths auditPaths, prepared preparedAudit,
 
 	scancodeTemp := work("scancode")
 	scancodeOutput := filepath.Join(scancodeTemp, "scancode.json")
-	scancode := makeSpec("scancode", tool("scancode", "32.5.0", "bin", "scancode-toolkit-v32.5.0", "scancode"), "50add1b40ec7bd25592c663386d98fbef280d3f668f5ab9f89965ed0bf7583dc", scancodeRuntime, "scancode.json", "application/json", []string{"--license", "--copyright", "--package", "--json", scancodeOutput, paths.targetRoot}, map[string]string{"PYTHONDONTWRITEBYTECODE": "1", "SCANCODE_CACHE": "/pao/out/scancode-cache", "SCANCODE_TEMP": "/pao/out/scancode-tmp"}, 1800)
+	// Docker limits this adapter to one CPU; pin one worker and a bounded per-file
+	// timeout instead of inheriting the host's much larger CPU count.
+	scancode := makeSpec("scancode", tool("scancode", "32.5.0", "bin", "scancode-toolkit-v32.5.0", "scancode"), "50add1b40ec7bd25592c663386d98fbef280d3f668f5ab9f89965ed0bf7583dc", scancodeRuntime, "scancode.json", "application/json", []string{"--license", "--copyright", "--package", "--processes", "1", "--timeout", "300", "--json", scancodeOutput, paths.targetRoot}, map[string]string{"PYTHONDONTWRITEBYTECODE": "1", "SCANCODE_CACHE": "/pao/out/scancode-cache", "SCANCODE_TEMP": "/pao/out/scancode-tmp"}, 1800)
 	scancode.StatePath = tool("scancode", "32.5.0", "state", "2026-09-01-synthetic-v1")
 	scancode.StateDigest = "sha256:962f62028d63d508d84550060664b5dd76dd53cc1bb5a3a6cd25ee9abf510d45"
 	scancode.StateEntrypoint = "scancode-toolkit-v32.5.0/venv/bin/scancode"

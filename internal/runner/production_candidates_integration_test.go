@@ -92,7 +92,7 @@ func TestScanCodeProductionCandidateThroughHostRunner(t *testing.T) {
 		APIVersion: "pao.dev/execution/v1alpha1", AdapterID: "scancode", ToolID: "scancode", ToolPath: toolPath, ToolDigest: fileDigestReference(t, toolPath),
 		StatePath: statePath, StateDigest: stateDigest, StateEntrypoint: "scancode-toolkit-v32.5.0/venv/bin/scancode",
 		RuntimeDigest: runtimeDigest, LicenseDataDigest: licenseDigest, OutputFile: outputFile, OutputMediaType: "application/json",
-		Arguments: []string{"--license", "--copyright", "--package", "--json", filepath.Join(temporary, outputFile), targetPath}, TargetRoot: targetPath, TemporaryDir: temporary,
+		Arguments: []string{"--license", "--copyright", "--package", "--processes", "1", "--timeout", "300", "--json", filepath.Join(temporary, outputFile), targetPath}, TargetRoot: targetPath, TemporaryDir: temporary,
 		Environment:    map[string]string{"PYTHONDONTWRITEBYTECODE": "1", "SCANCODE_CACHE": "/pao/out/scancode-cache", "SCANCODE_TEMP": "/pao/out/scancode-tmp"},
 		TimeoutSeconds: 1800, Sandbox: strongSandbox(),
 	}
