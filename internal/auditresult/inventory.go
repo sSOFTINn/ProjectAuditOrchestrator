@@ -272,10 +272,13 @@ func consistentInventoryExport(native []nativeItem, data []byte) bool {
 			return false
 		}
 		identity := key(name, version, purl)
-		if expected[identity] <= 0 {
+		if expected[identity] > 0 {
+			expected[identity]--
+		} else if str(component, "type") != "file" || version != "" || purl != "" {
+			// Syft's CycloneDX export can include unversioned source files
+			// without package URLs which are absent from native artifacts.
 			return false
 		}
-		expected[identity]--
 		if children, exists := component["components"]; exists {
 			items, ok := children.([]any)
 			if !ok || len(items)+visited+len(pending) > maxItems {

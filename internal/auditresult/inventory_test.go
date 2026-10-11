@@ -226,6 +226,10 @@ func TestInventoryExportComparisonChecksVersionPURLAndNestedComponents(t *testin
 		match      bool
 	}{
 		{`[{"name":"synthetic","version":"1","purl":"pkg:pypi/synthetic@1"}]`, true},
+		{`[{"name":"synthetic","version":"1","purl":"pkg:pypi/synthetic@1"},{"type":"file","name":"/pao/target/workflow.yml"}]`, true},
+		{`[{"type":"file","name":"/pao/target/workflow.yml"}]`, false},
+		{`[{"name":"synthetic","version":"1","purl":"pkg:pypi/synthetic@1"},{"type":"file","name":"/pao/target/workflow.yml","purl":"pkg:pypi/extra@1"}]`, false},
+		{`[{"name":"synthetic","version":"1","purl":"pkg:pypi/synthetic@1"},{"type":"file","name":"/pao/target/workflow.yml","version":"1"}]`, false},
 		{`[{"name":"synthetic","version":"2","purl":"pkg:pypi/synthetic@1"}]`, false},
 		{`[{"name":"synthetic","version":"1","purl":"pkg:golang/synthetic@1"}]`, false},
 		{`[]`, false},
@@ -234,6 +238,10 @@ func TestInventoryExportComparisonChecksVersionPURLAndNestedComponents(t *testin
 		if got := consistentInventoryExport(native, []byte(`{"bomFormat":"CycloneDX","specVersion":"1.5","components":`+tc.components+`}`)); got != tc.match {
 			t.Fatalf("comparison %s: got %v", tc.components, got)
 		}
+	}
+	nativeWithFile := append(append([]nativeItem(nil), native...), nativeItem{Category: "inventory", Component: "/pao/target/workflow.yml"})
+	if !consistentInventoryExport(nativeWithFile, []byte(`{"bomFormat":"CycloneDX","specVersion":"1.5","components":[{"name":"synthetic","version":"1","purl":"pkg:pypi/synthetic@1"},{"type":"file","name":"/pao/target/workflow.yml"}]}`)) {
+		t.Fatal("a file present in native artifacts was lost")
 	}
 	if got := assessInventory(plan.Plan{Detected: detect.Result{Languages: []string{"go"}}}, nil, nil); got.Adequate || !hasInventoryGap(got, "INVENTORY_EXPECTATIONS_NOT_RECORDED") {
 		t.Fatalf("legacy execution-only coverage upgraded to an inventory claim: %+v", got)
