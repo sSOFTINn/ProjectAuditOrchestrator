@@ -12,6 +12,7 @@ archive is a developer/CI input, never an audit-time dependency and never downlo
 | Capability | Primary | Fallback / skip | Mode | Evidence contract |
 |---|---|---|---|---|
 | SBOM inventory | Syft (Apache-2.0) | `UNAVAILABLE`; no synthetic BOM | download-not-bundle | Syft JSON, version/digest, target snapshot |
+| SBOM quality | sbomqs (Apache-2.0), compatible version 2.1.1 | `UNAVAILABLE` without owner approval; informational score only | user-installed-only | Captured Syft CycloneDX input, legacy JSON score, tool version/digest and linked evidence; [adapter contract](../../adapters/sbomqs/manifest.json) and [local operation](../operations/sbomqs-local-operation.md) |
 | Deep SCA | Grype + OSV-Scanner (Apache-2.0) | `PARTIAL` with DB age if either absent/stale | user-installed | Native JSON/SARIF, DB digest/timestamp |
 | Fast/IaC | Trivy (Apache-2.0) | `UNAVAILABLE` | user-installed | Native JSON/SARIF, DB/rule digest |
 | License/copyright | ScanCode (Apache-2.0; reference dataset CC-BY-4.0 with documented secondary terms) | `MANUAL_REVIEW` for missing coverage | user-installed, no redistribution | Native JSON/JSONL, exact license-data subset digest and terms |

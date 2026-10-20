@@ -45,6 +45,29 @@ func TestProcessContracts(t *testing.T) {
 	}
 	t.Logf("built producer A=%s B=%s", identityA.ExecutableSHA256, identityB.ExecutableSHA256)
 
+	t.Run("help-without-reading-config-or-target", func(t *testing.T) {
+		fixture := processFixture(t, repository)
+		for _, args := range [][]string{
+			{"--help"}, {"-h"}, {"help"},
+			{"inspect", "--target", filepath.Join(fixture.target, "missing"), "--help"},
+			{"plan", "--target", filepath.Join(fixture.target, "missing"), "--help"},
+			{"audit", "--config", fixture.invalid, "--execute", "--help"},
+			{"audit", "--target", filepath.Join(fixture.target, "missing"), "--no-adapters", "--help"},
+		} {
+			result := processInvoke(t, primary, args, "", nil)
+			if len(args) > 1 {
+				processExpect(t, result, 0, "Usage of "+args[0]+":")
+				continue
+			}
+			processExpect(t, result, 0, "PAO")
+			if result.stderr != "" || !strings.Contains(result.stdout, "RUN <audit-id> <plan-digest>") {
+				t.Fatalf("global help is missing the approval boundary: %#v", result)
+			}
+		}
+		processExpect(t, processInvoke(t, primary, []string{"unknown-command"}, "", nil), exitUsage, "PAO")
+		fixture.assertNoRuns(t)
+	})
+
 	var firstRun processRunArtifacts
 	var parserVersion string
 	for _, entry := range []struct {

@@ -21,11 +21,12 @@ import (
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/normalize"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/plan"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/target"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/toolchain"
 )
 
 const Version = "pao.dev/unified-report/v1"
-const ParserVersion = "pao-native-projection/5"
+const ParserVersion = "pao-native-projection/6"
 
 var digestPattern = regexp.MustCompile(`^sha256:[a-f0-9]{64}$`)
 
@@ -162,6 +163,7 @@ func Build(root string, lock plan.Plan, record runner.Record, catalog *toolchain
 	rawClaims := map[string]int{}
 	verifiedSBOMs := map[string]artifact.RawArtifact{}
 	inventoryExportConsistent := true
+	goModuleFileCatalogerUsed := false
 	for _, e := range record.Executions {
 		byID[e.AdapterID] = append(byID[e.AdapterID], e)
 		executionIDs[e.ID]++
@@ -313,6 +315,9 @@ func Build(root string, lock plan.Plan, record runner.Record, catalog *toolchain
 			continue
 		}
 		p := parseNative(n.ID, data)
+		if n.ID == "syft" && p.Status == "PARSED" {
+			goModuleFileCatalogerUsed = p.GoModuleFileCatalogerUsed
+		}
 		if n.ID == "syft" && p.Status == "PARSED" && !consistentInventoryExport(p.Items, capturedSBOM) {
 			inventoryExportConsistent = false
 		}
@@ -404,7 +409,10 @@ func Build(root string, lock plan.Plan, record runner.Record, catalog *toolchain
 	if !r.CoverageComplete {
 		r.Status = "INCOMPLETE"
 	}
-	r.InventoryCoverage = assessInventory(lock, r.Coverage, r.Observations)
+	goEmptyVerified := inventoryExportConsistent && goModuleFileCatalogerUsed && record.Validate() == nil && record.PlanDigest == lock.PlanDigest &&
+		record.TargetBefore.TargetID == lock.TargetID && record.TargetAfter.TargetID == lock.TargetID &&
+		sameGoDeclarationEvidence(lock.Detected.EmptyGoModuleHashes, record.TargetBefore, record.TargetAfter)
+	r.InventoryCoverage = assessInventory(lock, r.Coverage, r.Observations, goEmptyVerified)
 	if !inventoryExportConsistent {
 		r.InventoryCoverage.Gaps = append(r.InventoryCoverage.Gaps, InventoryGap{Reason: "SBOM_EXPORT_INVENTORY_MISMATCH"})
 		r.InventoryCoverage.Adequate, r.InventoryCoverage.Status = false, "PARTIAL"
@@ -433,6 +441,18 @@ func Build(root string, lock plan.Plan, record runner.Record, catalog *toolchain
 	sort.Slice(r.Findings, func(i, j int) bool { return r.Findings[i].FindingID < r.Findings[j].FindingID })
 	sort.Slice(r.LicenseReview, func(i, j int) bool { return r.LicenseReview[i].ComponentID < r.LicenseReview[j].ComponentID })
 	return r
+}
+
+func sameGoDeclarationEvidence(hashes []string, before, after target.Snapshot) bool {
+	if len(hashes) == 0 || len(hashes) > 1000 {
+		return false
+	}
+	// Compare exact canonical sets. Duplicated, fabricated or historical
+	// declarations cannot be upgraded by replaying a new report parser.
+	expected := append([]string(nil), hashes...)
+	sort.Strings(expected)
+	return strings.Join(expected, "\n") == strings.Join(target.EmptyGoModuleHashes(before), "\n") &&
+		strings.Join(expected, "\n") == strings.Join(target.EmptyGoModuleHashes(after), "\n")
 }
 
 func selectSyftArtifacts(artifacts []artifact.RawArtifact) (*artifact.RawArtifact, *artifact.RawArtifact) {
@@ -529,9 +549,15 @@ func inspectCycloneDX(raw []byte) (cyclonedxCompleteness, error) {
 	if document == nil || str(document, "bomFormat") != "CycloneDX" || str(document, "specVersion") == "" {
 		return cyclonedxCompleteness{}, errors.New("unsupported CycloneDX document")
 	}
-	components, found := document["components"].([]any)
+	componentsValue, exists := document["components"]
+	if !exists {
+		// The components field is optional. Inventory consistency is checked
+		// separately against native Syft before any adequacy decision.
+		return cyclonedxCompleteness{}, nil
+	}
+	components, found := componentsValue.([]any)
 	if !found {
-		return cyclonedxCompleteness{}, errors.New("CycloneDX components are required")
+		return cyclonedxCompleteness{}, errors.New("invalid CycloneDX components")
 	}
 	if len(components) > maxItems {
 		return cyclonedxCompleteness{}, errors.New("CycloneDX component limit")

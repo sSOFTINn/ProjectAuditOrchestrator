@@ -99,7 +99,7 @@ target manifest before and after inspection. It rejects an output path inside th
 
 ## Verify the signed tag and public hashes
 
-The owner selected a signed `v0.2.0` tag and public checksums; build provenance
+Published releases use a signed version tag and public checksums; build provenance
 and SBOM stay internal. The workflow does not publish keyless attestations.
 Before release, record the owner's trusted signing identity and key, approve
 the exact clean main commit and final public bytes, then prepare a signed tag
@@ -114,24 +114,108 @@ only names a commit does not authenticate separately uploaded binary archives.
 Signing and publication require their own exact approval; local preparation
 does not create a tag or install trust keys.
 
-After the approved tag is available in a trusted local checkout, verify its
-signature against the separately trusted owner key, check its peeled commit,
-and compare the signed checksum-manifest digest with the downloaded file:
+Use the version of the downloaded package, without a leading `v`. An example
+version or expected tag name does not establish that a release exists. Obtain
+the approved source commit and expected signer fingerprint through a trusted
+maintainer channel, and configure Git to trust that signing identity separately.
+These commands do not download a tag, install trust keys or need internal build
+evidence. A cryptographically valid signature from an unknown key is insufficient.
+
+After the tag is available in the trusted checkout, set the five values below.
+Choose `windows` or `linux` for the downloaded archive. The download folder needs
+only that archive and the complete `SHA256SUMS.txt` from the same release.
+Run with ordinary user privileges.
+
+On Linux, in `sh` with Git and `sha256sum`:
 
 ```sh
-git verify-tag v0.2.0
-git rev-parse 'v0.2.0^{commit}'
-git cat-file tag v0.2.0
-sha256sum SHA256SUMS.txt
-sha256sum -c SHA256SUMS.txt
+set -eu
+pao_version='REPLACE_WITH_DOWNLOADED_VERSION'
+pao_source='/absolute/path/to/trusted/ProjectAuditOrchestrator'
+pao_downloads='/absolute/path/to/downloads'
+pao_expected_commit='REPLACE_WITH_APPROVED_40_HEX_COMMIT'
+pao_platform='linux'
+pao_ref="refs/tags/v$pao_version"
+pao_windows="pao-$pao_version-windows-amd64.zip"
+pao_linux="pao-$pao_version-linux-amd64.tar.gz"
+case "$pao_platform" in
+  windows) pao_filename=$pao_windows ;;
+  linux) pao_filename=$pao_linux ;;
+  *) printf '%s\n' 'Choose windows or linux.' >&2; exit 1 ;;
+esac
+
+git -C "$pao_source" verify-tag "$pao_ref"
+test "$(git -C "$pao_source" rev-parse "$pao_ref^{commit}")" = "$pao_expected_commit"
+pao_tag_text=$(git -C "$pao_source" cat-file tag "$pao_ref")
+pao_signed_hash=$(printf '%s\n' "$pao_tag_text" |
+  sed -n 's/^SHA256SUMS\.txt SHA256: \([0-9a-f]\{64\}\)$/\1/p')
+test "${#pao_signed_hash}" -eq 64
+cd "$pao_downloads"
+pao_manifest_hash=$(sha256sum SHA256SUMS.txt)
+test "${pao_manifest_hash%% *}" = "$pao_signed_hash"
+pao_expected_hash=$(awk -v win="$pao_windows" -v linux="$pao_linux" -v chosen="$pao_filename" '
+  NF != 2 || length($1) != 64 || $1 ~ /[^0-9a-f]/ { exit 1 }
+  $2 != win && $2 != linux { exit 1 }
+  seen[$2]++ { exit 1 }
+  $2 == chosen { hash = $1 }
+  END {
+    if (NR != 2 || !seen[win] || !seen[linux]) exit 1
+    print hash
+  }' SHA256SUMS.txt)
+pao_archive_hash=$(sha256sum "$pao_filename")
+test "${pao_archive_hash%% *}" = "$pao_expected_hash"
+printf '%s\n' 'Signed tag, approved commit and selected archive hash match.'
 ```
 
-On Windows, use the same Git checks and `Get-FileHash -Algorithm SHA256` for
-the manifest and each listed archive. A cryptographically valid signature from
-an unknown key is insufficient. The trusted key, commit, signed digest and
-archive hashes must all match the independently approved values. Missing or
-mismatched evidence prevents verification. Obtain the expected signer fingerprint
-through a trusted maintainer channel; this guide alone does not prove a signature.
+On Windows, in PowerShell 7 with Git:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$paoVersion = 'REPLACE_WITH_DOWNLOADED_VERSION'
+$paoSource = 'D:\trusted\ProjectAuditOrchestrator'
+$paoDownloads = 'D:\downloads'
+$paoExpectedCommit = 'REPLACE_WITH_APPROVED_40_HEX_COMMIT'
+$paoPlatform = 'windows'
+$paoRef = "refs/tags/v$paoVersion"
+$paoNames = @{ windows = "pao-$paoVersion-windows-amd64.zip"; linux = "pao-$paoVersion-linux-amd64.tar.gz" }
+if ($paoPlatform -cnotin @('windows','linux')) { throw 'Choose windows or linux.' }
+$paoFilename = $paoNames[$paoPlatform]
+
+git -C $paoSource verify-tag $paoRef
+if ($LASTEXITCODE -ne 0) { throw 'Tag signature verification failed.' }
+$paoCommit = git -C $paoSource rev-parse "$paoRef^{commit}"
+if ($LASTEXITCODE -ne 0 -or $paoCommit -cne $paoExpectedCommit) { throw 'Approved commit does not match.' }
+$paoTagText = git -C $paoSource cat-file tag $paoRef
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read the signed tag.' }
+$paoDigestFields = [regex]::Matches(($paoTagText -join "`n"), '(?m)^SHA256SUMS\.txt SHA256: ([0-9a-f]{64})\r?$')
+if ($paoDigestFields.Count -ne 1) { throw 'Expected exactly one signed checksum-manifest digest.' }
+$paoManifest = Join-Path $paoDownloads 'SHA256SUMS.txt'
+$paoManifestHash = (Get-FileHash -LiteralPath $paoManifest -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($paoManifestHash -cne $paoDigestFields[0].Groups[1].Value) { throw 'Signed checksum-manifest digest does not match.' }
+$paoExpectedLines = @(Get-Content -LiteralPath $paoManifest)
+if ($paoExpectedLines.Count -ne 2) { throw 'Expected exactly two archive entries.' }
+$paoHashes = @{}
+foreach ($paoLine in $paoExpectedLines) {
+    $paoFields = $paoLine -csplit '  ', 2
+    if ($paoFields.Count -ne 2 -or $paoFields[0] -cnotmatch '^[0-9a-f]{64}$' -or
+        $paoFields[1] -cnotin $paoNames.Values -or $paoHashes.ContainsKey($paoFields[1])) {
+        throw 'Invalid, unexpected or duplicate archive entry.'
+    }
+    $paoHashes[$paoFields[1]] = $paoFields[0]
+}
+$paoHash = (Get-FileHash -LiteralPath (Join-Path $paoDownloads $paoFilename) -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($paoHash -cne $paoHashes[$paoFilename]) { throw 'Selected archive hash does not match.' }
+'Signed tag, approved commit and selected archive hash match.'
+```
+
+Both examples require exactly one signed checksum-manifest digest and exactly
+the two expected archive entries for the selected version. They hash only the
+chosen archive, using its constructed allowlisted filename; they do not open
+paths supplied by the manifest. The other platform's archive need not be
+downloaded. Missing or mismatched evidence stops verification. Check the
+displayed signer against the independently trusted identity before extracting
+or running the selected archive. These checks establish its signature-bound
+byte identity, not security or legal approval.
 
 ## Smoke test after verification and extraction
 

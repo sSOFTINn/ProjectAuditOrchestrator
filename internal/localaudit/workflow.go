@@ -182,6 +182,25 @@ func command(ctx context.Context, args []string, input io.Reader, output, errout
 		if _, err := fmt.Fprintf(output, "  %s: %s\n", node.ID, node.Status); err != nil {
 			return fail(err)
 		}
+		// These fields are derived by the host planner, not scanner messages or
+		// target contents. Show support gaps before asking the operator to run.
+		if _, err := fmt.Fprintf(output, "    Застосовність: %s; підтримка входів: %s\n", node.Applicability, node.SupportStatus); err != nil {
+			return fail(err)
+		}
+		for _, detail := range []struct {
+			label  string
+			values []string
+		}{
+			{"Причини обмежень", node.SupportReasons},
+			{"Підтримані екосистеми", node.SupportedEcosystems},
+			{"Непідтримані екосистеми", node.UnsupportedEcosystems},
+		} {
+			if len(detail.values) > 0 {
+				if _, err := fmt.Fprintf(output, "    %s: %s\n", detail.label, strings.Join(detail.values, ", ")); err != nil {
+					return fail(err)
+				}
+			}
+		}
 	}
 	if _, err := fmt.Fprintln(output, "PREFLIGHT_REQUIRED: інструменти та ізоляція будуть перевірені перед запуском. Позитивний висновок ще не сформовано."); err != nil {
 		return fail(err)

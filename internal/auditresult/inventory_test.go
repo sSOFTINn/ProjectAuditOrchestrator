@@ -18,17 +18,23 @@ import (
 )
 
 func syntheticDependencyRun(t *testing.T, paths []string, syftBody string) (string, plan.Plan, runner.Record, *toolchain.Registry) {
+	contents := map[string]string{}
+	for _, path := range paths {
+		contents[path] = "synthetic-only"
+	}
+	return syntheticDependencyContentsRun(t, contents, syftBody)
+}
+
+func syntheticDependencyContentsRun(t *testing.T, contents map[string]string, syftBody string) (string, plan.Plan, runner.Record, *toolchain.Registry) {
 	t.Helper()
 	root, _, record, catalog := syntheticRun(t, map[string]string{"syft": syftBody})
 	targetRoot := t.TempDir()
-	for _, path := range paths {
+	for path, content := range contents {
 		file := filepath.Join(targetRoot, filepath.FromSlash(path))
 		if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 			t.Fatal(err)
 		}
-		// Contents are synthetic. Filename-only detection intentionally never
-		// interprets a custom lock as a supported package-manager format.
-		if err := os.WriteFile(file, []byte("synthetic-only"), 0600); err != nil {
+		if err := os.WriteFile(file, []byte(content), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -141,20 +147,20 @@ func TestInventoryFormatAndVersionGapsHaveExactScope(t *testing.T) {
 	}
 	coverage := []Coverage{{Scanner: "syft", Complete: true, ParsingStatus: "PARSED"}}
 	observations := []Observation{{Scanner: "syft", Native: parsed.Items[0]}}
-	got := assessInventory(lock, coverage, observations)
+	got := assessInventory(lock, coverage, observations, false)
 	if got.Adequate || len(got.Gaps) != 2 || got.Gaps[0].Format != "build-requirements.lock" || got.Gaps[0].Scope != "build" || got.Gaps[1].Format != "requirements.lock" {
 		t.Fatalf("custom formats lost: %+v", got)
 	}
 	lock.Detected = detect.Detect(target.Snapshot{Files: []target.FileEntry{{Path: "requirements.txt"}}})
-	if got := assessInventory(lock, coverage, observations); !got.Adequate || got.Status != "ADEQUATE_FOR_DETECTED_ECOSYSTEMS" {
+	if got := assessInventory(lock, coverage, observations, false); !got.Adequate || got.Status != "ADEQUATE_FOR_DETECTED_ECOSYSTEMS" {
 		t.Fatalf("positive ecosystem control: %+v", got)
 	}
 	observations[0].Native.ComponentVersion = ""
-	if got := assessInventory(lock, coverage, observations); got.Adequate || !hasInventoryGap(got, "INVENTORY_VERSION_MISSING") {
+	if got := assessInventory(lock, coverage, observations, false); got.Adequate || !hasInventoryGap(got, "INVENTORY_VERSION_MISSING") {
 		t.Fatalf("unpinned control: %+v", got)
 	}
 	coverage[0].Complete = false
-	if got := assessInventory(lock, coverage, observations); got.Adequate || len(got.ObservedEcosystems) != 0 || !hasInventoryGap(got, "INVENTORY_EVIDENCE_UNAVAILABLE") {
+	if got := assessInventory(lock, coverage, observations, false); got.Adequate || len(got.ObservedEcosystems) != 0 || !hasInventoryGap(got, "INVENTORY_EVIDENCE_UNAVAILABLE") {
 		t.Fatalf("incomplete evidence became adequate: %+v", got)
 	}
 }
@@ -243,7 +249,7 @@ func TestInventoryExportComparisonChecksVersionPURLAndNestedComponents(t *testin
 	if !consistentInventoryExport(nativeWithFile, []byte(`{"bomFormat":"CycloneDX","specVersion":"1.5","components":[{"name":"synthetic","version":"1","purl":"pkg:pypi/synthetic@1"},{"type":"file","name":"/pao/target/workflow.yml"}]}`)) {
 		t.Fatal("a file present in native artifacts was lost")
 	}
-	if got := assessInventory(plan.Plan{Detected: detect.Result{Languages: []string{"go"}}}, nil, nil); got.Adequate || !hasInventoryGap(got, "INVENTORY_EXPECTATIONS_NOT_RECORDED") {
+	if got := assessInventory(plan.Plan{Detected: detect.Result{Languages: []string{"go"}}}, nil, nil, false); got.Adequate || !hasInventoryGap(got, "INVENTORY_EXPECTATIONS_NOT_RECORDED") {
 		t.Fatalf("legacy execution-only coverage upgraded to an inventory claim: %+v", got)
 	}
 }

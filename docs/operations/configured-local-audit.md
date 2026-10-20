@@ -6,6 +6,14 @@
 пакетів є історичними. Почніть із [посібника пакета](../public-start.uk.md)
 і [меж публічного кандидата](../release/v0.2-public-scope.md).
 
+Для першої інсталяції оберіть **`secrets` із Gitleaks 8.30.1 Linux AMD64**.
+Один і той самий Linux scanner працює всередині VM на Windows та Ubuntu;
+host executable PAO обирається окремо під ОС. У посібнику пакета є порядок
+перевірки upstream-архіву, підготовки Docker runtime, hashes та три повні
+JSON-приклади для синтетичної цілі. Цей профіль потребує одного запису catalog
+і `base` provider, без DB, prepared state та rule pack. Профіль `mvp` вимагає
+окремої підготовки інших інструментів.
+
 ## Приватна конфігурація
 
 Для публічного пакета використовуйте `pao.dev/local-audit-config/v2`.
@@ -39,24 +47,49 @@ permission або виконання target code.
 Оновлення Docker CLI чи образу потребує нового точного provider review,
 а зміна конфігурації/catalog/provider потребує нового preview та RUN.
 
+У мінімальному catalog для `secrets` потрібні `record.id=gitleaks`,
+`record.version=8.30.1`, hash розпакованого Linux scanner, `source_license=MIT`,
+`redistribution=user-installed-only`, погоджені runtime hash/time,
+`binary=gitleaks/8.30.1/bin/gitleaks` і `provider=base`. У config залиште
+`docker_scancode_provider` та `rule_pack_root` порожніми.
+Provider містить hash **host Docker CLI**, локальний image ID із `sha256:`
+і окремий owner review. Catalog зберігає той самий image ID без префікса.
+Hash завантаженого scanner-архіву не замінює hash executable.
+
+`approved_at` і `runtime_at` — UTC час відповідних реальних перевірок;
+`expires_at` — строк, обраний власником за їхніми результатами. Шаблонні дати,
+дату випуску scanner чи довільне «сьогодні» не можна видавати за цей запис.
+Підготовка образу з [runtime/Dockerfile](../../runtime/Dockerfile) може
+завантажувати base image та пакети; це окремий етап до аудиту. Успішний build
+ще потребує [перевірки VM та прав](container-vm-readiness.md), точного image ID
+й рішення власника. Не перетворюйте `UNAPPROVED` на дозвіл лише через збіг hashes.
+
 ## Preview і виконання
 
 PowerShell 7, звичайні права, з папки розпакованого перевіреного пакета:
 
 ```powershell
-.\pao.exe audit --config 'D:\PAO-private\my-project.json' --profile deep-sca
-.\pao.exe audit --config 'D:\PAO-private\my-project.json' --profile deep-sca --execute
+.\pao.exe audit --config 'D:\PAO-first-run\config\audit.json' --profile secrets
+.\pao.exe audit --config 'D:\PAO-first-run\config\audit.json' --profile secrets --execute
 ```
 
 Linux AMD64, sh, з папки перевіреного пакета; real-host scanner acceptance
 ще **NOT VERIFIED**, тому ці приклади не є доказом приймання:
 
 ```sh
-./pao audit --config /home/USER/pao-private/my-project.json --profile deep-sca
-./pao audit --config /home/USER/pao-private/my-project.json --profile deep-sca --execute
+./pao audit --config /home/USER/pao-first-run/config/audit.json --profile secrets
+./pao audit --config /home/USER/pao-first-run/config/audit.json --profile secrets --execute
 ```
 
-Preview показує target, profile, adapters/skips, новий audit ID, paths і digests.
+У цих прикладах `target` у config має вказувати на підготовлену синтетичну
+папку з вигаданим текстом. Перенесення workflow на робочий проєкт потребує
+його окремої конфігурації, перевіреного scope та нового підтвердження.
+
+Preview показує target, profile, adapters/skips, новий audit ID, paths і digests,
+а також застосовність, підтримку входів, закриті reason codes та відомі
+підтримані/непідтримані екосистеми. Це пояснення host planner, без raw scanner text.
+Наприклад, mixed Go/PyPI OSV може мати `PREFLIGHT_REQUIRED`, але одночасно
+`PARTIAL` і `DB_ECOSYSTEM_UNSUPPORTED`: Go частина можлива, PyPI не покривається.
 Він читає ціль, не запускає scanners/Git/package managers і не створює run artifacts.
 Код `0` цього preview не означає успішний аудит.
 
@@ -64,6 +97,12 @@ Preview показує target, profile, adapters/skips, новий audit ID, pat
 фразу у цей термінал. «Так», EOF, порожній рядок чи фраза попереднього запуску
 не підходять. Зміни config/target/manifests після підтвердження спричиняють
 відмову або новий preview; не обходьте її підміною hash/approval.
+
+Для завершеного synthetic `secrets` із прочитаним Gitleaks JSON очікується
+`REVIEW_REQUIRED` і exit code `4`, навіть за нуля знахідок. Той самий код
+може позначати неповне виконання: перевірте status/reasons та
+`06_report/SUMMARY.md`, а не лише число. `secrets` охоплює файли, без заяви
+про всю історію Git, SCA, SAST чи ліцензійний аудит.
 
 Snapshot/capture обмежує фактично прочитані bytes: 64 MiB на файл, 4 GiB на
 verification/copy pass і 100,000 tree entries. Файл, що росте, replacement,
@@ -110,6 +149,29 @@ versions чи unsupported formats лишають gaps. `analysis_coverage_comple
 усіх runtime/build/transitive dependencies або відсутності vulnerabilities.
 Інформаційний score sbomqs не замінює цей контроль і не є legal/security verdict.
 Без owner-approved sbomqs його quality coverage лишається `UNAVAILABLE`.
+
+Для Go-модуля без оголошених залежностей Syft може коректно повернути порожній
+перелік: його звичайний go.mod cataloger перелічує `require`/`replace`, а не
+сам main module. PAO підтверджує цей випадок окремо через
+`verified_empty_declared_ecosystems: ["Go"]`, залишаючи `observed_ecosystems`
+фактичним переліком Syft. Виняток потребує одночасно:
+
+- кожен `go.mod` не перевищує 64 KiB та містить лише по одній простій директиві
+  `module` і `go` з ASCII-коментарями; усі інші форми залишаються непідтвердженими;
+- немає `go.sum`, `go.work`, `go.work.sum`, Go vendor inputs (`modules.txt`,
+  `go.mod` або `.go` у vendor), redirected entries
+  чи неповного snapshot; одна порожня декларація не закриває інший модуль;
+- доказ отриманий під час того самого обмеженого читання, що й SHA-256 файлу,
+  включений до snapshot/plan identity і збігається до та після запуску;
+- Syft завершився й прочитаний повністю, використав `go-module-file-cataloger`,
+  а native Syft і CycloneDX inventory відповідають один одному.
+
+Це доказ відсутності **оголошених** залежностей у підтриманій підмножині
+`go.mod`. Він не підтверджує імпорти, стандартну бібліотеку, build/runtime graph
+або відсутність вразливостей. Старі плани без такого доказу лишаються `PARTIAL`.
+Syft може опустити необов'язкове `components` у порожньому CycloneDX; відсутнє
+поле прийнятне для inventory comparison лише за порожнього native inventory.
+Явне `null`, некоректний тип або втрачений native package залишають прогалину.
 
 ## Ізоляція й помилки
 

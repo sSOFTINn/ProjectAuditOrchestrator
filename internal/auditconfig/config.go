@@ -61,7 +61,7 @@ func Decode(data []byte) (Config, error) {
 		value, err := d.Token()
 		text, ok := value.(string)
 		if err != nil || !ok || strings.ContainsAny(text, "\x00\r\n") {
-			return c, errors.New("configuration fields must be strings without control line breaks")
+			return c, fmt.Errorf("configuration field %q must be a string without control line breaks", key)
 		}
 	}
 	if _, err := d.Token(); err != nil {
@@ -74,20 +74,23 @@ func Decode(data []byte) (Config, error) {
 		return c, err
 	}
 	if c.Version != Version && c.Version != PortableVersion {
-		return c, errors.New("unsupported configuration version")
+		return c, errors.New(`configuration field "version" must be pao.dev/local-audit-config/v1 or pao.dev/local-audit-config/v2`)
 	}
-	required := []string{c.Target, c.EvidenceBase, c.ReportBase, c.ToolchainRoot, c.ManifestRoot}
+	required := [][2]string{
+		{"target", c.Target}, {"evidence_base", c.EvidenceBase}, {"report_base", c.ReportBase},
+		{"toolchain_root", c.ToolchainRoot}, {"manifest_root", c.ManifestRoot},
+	}
 	if c.Version == Version {
 		if seen["toolchain_catalog"] {
 			return c, errors.New("toolchain_catalog requires configuration v2")
 		}
-		required = append(required, c.RulePackRoot, c.DockerBaseProvider, c.DockerScanCodeProvider)
+		required = append(required, [2]string{"rule_pack_root", c.RulePackRoot}, [2]string{"docker_base_provider", c.DockerBaseProvider}, [2]string{"docker_scancode_provider", c.DockerScanCodeProvider})
 	} else {
-		required = append(required, c.ToolchainCatalog)
+		required = append(required, [2]string{"toolchain_catalog", c.ToolchainCatalog})
 	}
-	for _, value := range required {
-		if value == "" {
-			return c, errors.New("required configuration field is empty or missing")
+	for _, field := range required {
+		if field[1] == "" {
+			return c, fmt.Errorf("required configuration field %q is empty or missing; supply its absolute local path", field[0])
 		}
 	}
 	return c, nil

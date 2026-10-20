@@ -7,7 +7,9 @@ legal verdict.
 
 ## Scope
 
-This source implements the bounded `v0.2.0` scope.
+This source builds on the bounded `v0.2.0` scope, with local unreleased changes
+listed in the [changelog](CHANGELOG.md). An unreleased candidate is not a signed
+or approved release.
 The [current scope](docs/release/v0.2-public-scope.md) records implementation,
 support boundaries and verification requirements. Internal planning, review and
 acceptance records are retained separately from the public source.
@@ -38,6 +40,8 @@ Applicability, format/ecosystem support, tool availability, execution and parsin
 are distinct. `coverage_complete` retains execution/parsing meaning;
 `inventory_coverage` compares detected dependency ecosystems with verified
 inventory, and `analysis_coverage_complete` also accounts for support gaps.
+`verified_empty_declared_ecosystems` separately records a plan-bound, verified
+empty Go dependency declaration; it does not invent an observed Go component.
 None proves every runtime, build or transitive component. A recognized filename
 is a planning hint rather than proof that a scanner consumed its contents.
 

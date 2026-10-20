@@ -190,6 +190,9 @@ func markdown(p PortableReport) []byte {
 	}
 	b.WriteString("Кількості позначають записи сканерів, а не унікальні підтверджені проблеми.\n\n## Достатність інвентаризації\n\n")
 	fmt.Fprintf(&b, "Стан: **%s**. Очікувані екосистеми за назвами файлів: **%s**. Екосистеми у підтвердженому Syft: **%s**.\n\n", p.InventoryCoverage.Status, ecosystemList(p.InventoryCoverage.ExpectedEcosystems), ecosystemList(p.InventoryCoverage.ObservedEcosystems))
+	if len(p.InventoryCoverage.VerifiedEmptyDeclaredEcosystems) > 0 {
+		fmt.Fprintf(&b, "Підтверджено відсутність оголошених залежностей: **%s**. Доказ обмежений перевіреними директивами go.mod; стандартна бібліотека, імпорти й повний build/runtime graph ним не підтверджуються.\n\n", ecosystemList(p.InventoryCoverage.VerifiedEmptyDeclaredEcosystems))
+	}
 	if len(p.InventoryCoverage.Gaps) > 0 {
 		b.WriteString("| Екосистема | Формат / scope hint | Прогалина |\n|---|---|---|\n")
 		for _, gap := range p.InventoryCoverage.Gaps {
