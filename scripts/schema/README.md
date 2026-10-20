@@ -1,5 +1,13 @@
 # Offline JSON Schema validation
 
+The current `unified-report-v1` schema requires native projection
+`pao-native-projection/6`, including its optional verified-empty Go declaration
+field. The schema ID remains `pao.dev/unified-report/v1`; select the schema from
+the source revision matching the report's parser version. Historical `/5`
+reports require their historical schema and are not rewritten or silently
+accepted by the current `/6` schema. Historical plans without a content proof
+do not gain one when a report is rendered again.
+
 This source-only harness validates synthetic artifacts emitted by the actual PAO
 libraries and explicit synthetic release-provenance profile examples. It uses
 complete cached upstream schemas for SARIF 2.1.0, CycloneDX 1.5 and SPDX 2.3,

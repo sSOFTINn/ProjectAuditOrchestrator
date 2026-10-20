@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"runtime"
@@ -26,11 +28,14 @@ const (
 
 func main() {
 	if len(os.Args) < 2 {
-		usage()
+		usage(os.Stderr)
 		os.Exit(exitUsage)
 	}
 	var code int
 	switch os.Args[1] {
+	case "help", "--help", "-h":
+		usage(os.Stdout)
+		code = exitOK
 	case "version":
 		fmt.Println(buildinfo.Version)
 		code = exitOK
@@ -43,14 +48,52 @@ func main() {
 	case "audit":
 		code = audit(os.Args[2:])
 	default:
-		usage()
+		usage(os.Stderr)
 		code = exitUsage
 	}
 	os.Exit(code)
 }
 
-func usage() {
-	fmt.Fprintln(os.Stderr, "usage: pao version | doctor | inspect --target PATH | plan --target PATH --profile NAME --dry-run | audit --config FILE --profile NAME [--execute] | audit --target PATH --no-adapters")
+func usage(w io.Writer) {
+	fmt.Fprintln(w, `PAO — локальний аудит із попереднім переглядом і точним підтвердженням.
+
+Використання:
+  pao --help
+  pao version
+  pao doctor
+  pao inspect --target PATH
+  pao plan --target PATH --profile fast --dry-run
+  pao audit --config FILE --profile secrets [--execute]
+
+Команди:
+  version  Версія PAO.
+  doctor   Ідентичність PAO; не перевірка готовності Docker чи сканерів.
+  inspect  Читання структури цілі без запуску її коду або сканерів.
+  plan     Попередній план без сканерів; --dry-run обов'язковий.
+           Профілі цього окремого режиму: fast, mvp.
+  audit    Перегляд аудиту з приватним JSON налаштувань.
+           --execute додатково вимагає поточну фразу RUN <audit-id> <plan-digest>.
+
+Профілі audit:
+  secrets       Gitleaks: пошук секретів у поточних файлах.
+  fast          Trivy: вразливості залежностей.
+  deep-sca      Syft, Grype, OSV-Scanner: склад і вразливості залежностей.
+  license       ScanCode, REUSE: ліцензійні спостереження.
+  sast          Opengrep: статичний аналіз.
+  ci-security   zizmor: налаштування CI.
+  sbom-quality  Syft, sbomqs: інформаційна оцінка SBOM.
+  mvp           Усі адаптери з перевіркою застосовності й готовності.
+
+Початок: перевірте пакет, прочитайте START_HERE.uk.md і використайте
+синтетичну ціль. Для першого налаштованого аудиту достатньо профілю secrets;
+сканер Linux AMD64 та погоджена Docker Desktop Linux VM готуються окремо.
+FILE — абсолютний шлях або коротке ім'я у приватній папці PAO/config.
+Прапорці команди: pao audit --help, pao inspect --help, pao plan --help.
+
+audit: код 0 — лише preview/довідка; 3 — помилка конфігурації чи I/O;
+4 — потрібен розгляд/неповне виконання; 5 — відмова підтвердження або політики.
+PAO не надає автоматичного висновку про безпеку чи юридичну відповідність.
+Сумісний режим лише читання: pao audit --target PATH --no-adapters.`)
 }
 
 func audit(args []string) int {
@@ -90,7 +133,13 @@ func inspect(args []string) int {
 	fs := flag.NewFlagSet("inspect", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	path := fs.String("target", "", "target directory")
-	if err := fs.Parse(args); err != nil || *path == "" {
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitOK
+		}
+		return exitUsage
+	}
+	if *path == "" {
 		fmt.Fprintln(os.Stderr, "inspect requires --target PATH")
 		return exitUsage
 	}
@@ -119,7 +168,13 @@ func dryPlan(args []string) int {
 	path := fs.String("target", "", "target directory")
 	profile := fs.String("profile", "", "explicit audit profile (fast or mvp for legacy dry plan)")
 	dryRun := fs.Bool("dry-run", false, "do not execute adapters")
-	if err := fs.Parse(args); err != nil || *path == "" || !*dryRun || (*profile != "fast" && *profile != "mvp") || fs.NArg() != 0 {
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitOK
+		}
+		return exitUsage
+	}
+	if *path == "" || !*dryRun || (*profile != "fast" && *profile != "mvp") || fs.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "plan requires --target PATH --profile NAME --dry-run")
 		return exitUsage
 	}
@@ -144,7 +199,13 @@ func noAdapters(args []string) int {
 	fs.SetOutput(os.Stderr)
 	path := fs.String("target", "", "target directory")
 	noAdapter := fs.Bool("no-adapters", false, "plan/inspect only")
-	if err := fs.Parse(args); err != nil || *path == "" || !*noAdapter {
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitOK
+		}
+		return exitUsage
+	}
+	if *path == "" || !*noAdapter {
 		fmt.Fprintln(os.Stderr, "audit requires --target PATH --no-adapters")
 		return exitUsage
 	}

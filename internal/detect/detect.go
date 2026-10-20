@@ -16,10 +16,14 @@ type Result struct {
 	// These are expectations derived from file names, not a dependency inventory.
 	ExpectedEcosystems []string          `json:"expected_ecosystems,omitempty"`
 	DependencyInputs   []DependencyInput `json:"dependency_inputs,omitempty"`
+	// Content-derived evidence from target snapshotting; no module names or
+	// source text enter the plan. Missing evidence never implies an empty set.
+	EmptyGoModuleHashes []string `json:"empty_go_module_sha256_v1,omitempty"`
 }
 
 // DependencyInput uses a closed vocabulary and excludes target paths. Scope is a
-// file-name hint only; Detect never reads manifests or executes package managers.
+// file-name hint only; Detect never executes package managers. The optional
+// empty Go declaration evidence is derived while target snapshotting reads bytes.
 type DependencyInput struct {
 	Ecosystem string `json:"ecosystem"`
 	Format    string `json:"format"`
@@ -41,7 +45,7 @@ func KnownEcosystem(value string) bool {
 func Detect(s target.Snapshot) Result {
 	seenLang, seenArtifact, seenCapability, seenIndicator := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
 	seenInput, seenEcosystem := map[DependencyInput]bool{}, map[string]bool{}
-	r := Result{}
+	r := Result{EmptyGoModuleHashes: target.EmptyGoModuleHashes(s)}
 	add := func(dst *[]string, seen map[string]bool, value string) {
 		if !seen[value] {
 			seen[value] = true

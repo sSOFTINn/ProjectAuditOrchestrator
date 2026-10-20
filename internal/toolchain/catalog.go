@@ -58,8 +58,23 @@ func LoadCatalog(file string, now time.Time) (Catalog, error) {
 	if err := strictjson.Decode(raw, &c, catalogLimit); err != nil {
 		return c, err
 	}
-	if c.APIVersion != CatalogVersion || strings.TrimSpace(c.Owner) == "" || strings.EqualFold(strings.TrimSpace(c.Owner), "UNAPPROVED") || strings.ContainsAny(c.Owner, "\x00\r\n") || c.ApprovedAt.IsZero() || c.ApprovedAt.After(now) || !c.ExpiresAt.After(now) || c.ExpiresAt.Sub(c.ApprovedAt) > MaximumPrerequisiteAge || len(c.Tools) == 0 || len(c.Tools) > 10 {
-		return c, errors.New("catalog requires current explicit owner approval expiring within 90 days and 1..10 tools")
+	if c.APIVersion != CatalogVersion {
+		return c, errors.New(`catalog field "api_version" must be pao.dev/toolchain-catalog/v1`)
+	}
+	if strings.TrimSpace(c.Owner) == "" || strings.EqualFold(strings.TrimSpace(c.Owner), "UNAPPROVED") || strings.ContainsAny(c.Owner, "\x00\r\n") {
+		return c, errors.New(`catalog field "owner" requires an explicit approval after reviewing the exact tools and terms; UNAPPROVED is not approval`)
+	}
+	if c.ApprovedAt.IsZero() || c.ApprovedAt.After(now) {
+		return c, errors.New(`catalog field "approved_at" must record an actual approval time that is not in the future`)
+	}
+	if !c.ExpiresAt.After(now) {
+		return c, errors.New(`catalog field "expires_at" is missing or expired; review current prerequisites before creating a new approval`)
+	}
+	if c.ExpiresAt.Sub(c.ApprovedAt) > MaximumPrerequisiteAge {
+		return c, errors.New(`catalog field "expires_at" must be within 90 days of "approved_at"; shorter prerequisite freshness limits still apply`)
+	}
+	if len(c.Tools) == 0 || len(c.Tools) > 10 {
+		return c, errors.New(`catalog field "tools" requires 1..10 explicitly reviewed tool records`)
 	}
 	records := make([]Record, 0, len(c.Tools))
 	for _, tool := range c.Tools {

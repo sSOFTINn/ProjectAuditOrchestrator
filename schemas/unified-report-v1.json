@@ -30,7 +30,7 @@
       "const": "pao.dev/unified-report/v1"
     },
     "parser_version": {
-      "const": "pao-native-projection/5"
+      "const": "pao-native-projection/6"
     },
     "plan_digest": {
       "type": "string",
@@ -102,6 +102,12 @@
               "GitHubActions"
             ]
           }
+        },
+        "verified_empty_declared_ecosystems": {
+          "type": "array",
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["Go"] }
         },
         "gaps": {
           "type": "array",

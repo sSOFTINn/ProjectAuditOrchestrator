@@ -200,6 +200,87 @@ func TestPreviewAndRefusalNeverLaunchOrWrite(t *testing.T) {
 	}
 }
 
+func TestPreviewExplainsSupportBeforeConfirmation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		hasGo    bool
+		filename string
+		want     []string
+	}{
+		{
+			name: "mixed-go-pypi", hasGo: true, filename: "requirements.txt",
+			want: []string{"osv-scanner: PREFLIGHT_REQUIRED\n    Застосовність: APPLICABLE; підтримка входів: PARTIAL", "DB_ECOSYSTEM_UNSUPPORTED", "Підтримані екосистеми: Go", "Непідтримані екосистеми: PyPI"},
+		},
+		{
+			name: "python-only", filename: "requirements.txt",
+			want: []string{"osv-scanner: UNSUPPORTED\n    Застосовність: APPLICABLE; підтримка входів: UNSUPPORTED", "DB_ECOSYSTEM_UNSUPPORTED", "Непідтримані екосистеми: PyPI"},
+		},
+		{
+			name: "custom-lockfile", filename: "requirements.lock",
+			want: []string{"syft: PREFLIGHT_REQUIRED\n    Застосовність: APPLICABLE; підтримка входів: PARTIAL\n    Причини обмежень: UNSUPPORTED_INPUT_FORMAT", "Непідтримані екосистеми: PyPI"},
+		},
+	} {
+		for _, execute := range []bool{false, true} {
+			mode := "preview"
+			if execute {
+				mode = "confirmation-refused"
+			}
+			t.Run(tc.name+"/"+mode, func(t *testing.T) {
+				c, file, _ := portableSetup(t)
+				if !tc.hasGo {
+					if err := os.Remove(filepath.Join(c.Target, "go.mod")); err != nil {
+						t.Fatal(err)
+					}
+				}
+				const privateMarker = "PRIVATE_PREVIEW_SENTINEL"
+				if err := os.WriteFile(filepath.Join(c.Target, tc.filename), []byte("synthetic==1.0.0\n# "+privateMarker+"\x1b[31m\n"), 0600); err != nil {
+					t.Fatal(err)
+				}
+				catalog := portableCatalogFixture(t, &c, profiles["deep-sca"])
+				writeJSONTest(t, c.ToolchainCatalog, catalog)
+				writeJSONTest(t, file, c)
+				args := []string{"--config", file, "--profile", "deep-sca"}
+				wantCode := 0
+				if execute {
+					args = append(args, "--execute")
+					wantCode = 5
+				}
+				var out, errs bytes.Buffer
+				var calls []string
+				code := command(context.Background(), args, strings.NewReader(""), &out, &errs, sentinel(t, &calls))
+				if code != wantCode {
+					t.Fatalf("unexpected exit %d: %s", code, errs.String())
+				}
+				preview := out.String()
+				if execute {
+					confirmation := strings.Index(preview, "\nRUN ")
+					if confirmation < 0 || !strings.Contains(errs.String(), "CANCELLED") {
+						t.Fatalf("missing refused confirmation: %s %s", preview, errs.String())
+					}
+					preview = preview[:confirmation]
+				} else if !strings.Contains(preview, "PREVIEW_ONLY") || strings.Contains(preview, "\nRUN ") {
+					t.Fatalf("preview requested execution: %s", preview)
+				}
+				for _, want := range tc.want {
+					if !strings.Contains(preview, want) {
+						t.Errorf("missing %q before confirmation:\n%s", want, preview)
+					}
+				}
+				if !tc.hasGo && strings.Contains(preview, "Підтримані екосистеми: Go") {
+					t.Error("advertised absent Go ecosystem")
+				}
+				if strings.Contains(out.String()+errs.String(), privateMarker) || strings.ContainsRune(out.String()+errs.String(), 27) {
+					t.Fatal("preview printed target content")
+				}
+				if len(calls) != 0 {
+					t.Fatal("scanner launched")
+				}
+				assertNoRuns(t, c)
+			})
+		}
+	}
+}
+
 func TestRejectsDriftAfterConfirmation(t *testing.T) {
 	for _, what := range []string{"target", "config", "manifest"} {
 		t.Run(what, func(t *testing.T) {

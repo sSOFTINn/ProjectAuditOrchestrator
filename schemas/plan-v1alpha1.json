@@ -96,6 +96,12 @@
             ]
           }
         },
+        "empty_go_module_sha256_v1": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+        },
         "dependency_inputs": {
           "type": "array",
           "items": {

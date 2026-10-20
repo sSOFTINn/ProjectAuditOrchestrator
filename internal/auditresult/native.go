@@ -47,9 +47,10 @@ type nativeItem struct {
 }
 
 type parsed struct {
-	Status  string
-	Reasons []string
-	Items   []nativeItem
+	Status                    string
+	Reasons                   []string
+	Items                     []nativeItem
+	GoModuleFileCatalogerUsed bool
 }
 
 func (p *parsed) gap(code string) {
@@ -323,6 +324,18 @@ func parseNative(id string, data []byte) parsed {
 	}
 	switch id {
 	case "syft":
+		used, ok := obj(obj(obj(m["descriptor"])["configuration"])["catalogers"])["used"].([]any)
+		if ok && len(used) <= maxItems {
+			valid, goCatalogers := true, 0
+			for _, value := range used {
+				name, isString := value.(string)
+				valid = valid && isString
+				if name == "go-module-file-cataloger" {
+					goCatalogers++
+				}
+			}
+			p.GoModuleFileCatalogerUsed = valid && goCatalogers == 1
+		}
 		version := str(obj(m["schema"]), "version")
 		if version == "" {
 			p.gap("MISSING_SCHEMA_VERSION")

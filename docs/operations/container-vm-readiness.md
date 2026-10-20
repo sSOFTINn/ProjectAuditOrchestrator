@@ -1,6 +1,6 @@
 # Readiness for a `container-vm` execution provider
 
-PAO deliberately cannot run an adapter merely because a local `docker` command exists. On Windows,
+PAO deliberately cannot run an adapter merely because a local `docker` command exists. On Windows and Linux,
 the execution provider must be separately reviewed to prove all controls required by an adapter
 manifest: VM-backed isolation, read-only target access, temporary-write-only storage, denied network,
 sanitized environment, process-tree control, CPU/memory limits and a clean runtime identity.
@@ -9,7 +9,7 @@ This is a preparation guide, not authorization to install software or audit a ta
 
 ## Safe diagnostic
 
-Run in PowerShell 7 from the repository root:
+On Windows, run in PowerShell 7 from the repository root:
 
 ```powershell
 .\scripts\Test-ContainerVmReadiness.ps1 -AsJson
@@ -51,18 +51,71 @@ Only then may a provider be connected to `HostRunner`. Until then, `pao plan --d
 
 ## Local Docker Desktop acceptance test
 
-After Docker Desktop reports its engine as running, this opt-in command builds a static Go fixture and
-a local `FROM scratch` runtime. It pulls no image and does not start a scanner or inspect an audit
-target:
+After Docker Desktop reports its engine as running and the owner approves this
+synthetic acceptance run, use a trusted checkout of the selected PAO revision
+and an already installed, verified Go 1.27.1 toolchain. Run from that checkout's
+root with ordinary user privileges. On Linux the current user and group must
+both be non-root; the test uses the current numeric UID:GID so private inputs
+can retain their `0700`/`0600` permissions.
+
+These opt-in commands build a static Go fixture and a unique local `FROM scratch`
+image. They create synthetic files and several bounded containers, then remove
+only their owned containers and uniquely named image. They pull no image and
+do not start a third-party scanner or inspect an audit target. Replace the
+example Go and Docker paths with verified absolute regular-file paths; do not
+substitute a symlink or an ambient remote Docker context.
+
+Windows, PowerShell 7:
 
 ```powershell
-$env:PAO_DOCKER_INTEGRATION = '1'
-$env:PAO_GO_PATH = (Resolve-Path '.toolchain/go-sdk/bin/go.exe')
-& '.toolchain/go-sdk/bin/go.exe' test ./internal/runner -run TestDockerHostSyntheticIsolationAcceptance -count=1
-Remove-Item Env:PAO_DOCKER_INTEGRATION, Env:PAO_GO_PATH
+$paoGo = 'D:\tools\go1.27.1\bin\go.exe'
+$paoDocker = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+$paoEnvironmentNames = @('PAO_DOCKER_INTEGRATION','PAO_GO_PATH','PAO_DOCKER_PATH','GOTOOLCHAIN','GOPROXY','GOSUMDB')
+$paoSavedEnvironment = @{}
+foreach ($paoName in $paoEnvironmentNames) {
+    $paoSavedEnvironment[$paoName] = [Environment]::GetEnvironmentVariable($paoName)
+}
+try {
+    $env:GOTOOLCHAIN = 'local'
+    $env:GOPROXY = 'off'
+    $env:GOSUMDB = 'off'
+    $paoGoVersion = & $paoGo env GOVERSION
+    if ($LASTEXITCODE -ne 0 -or $paoGoVersion -cne 'go1.27.1') { throw 'Approved Go 1.27.1 is required.' }
+    $env:PAO_DOCKER_INTEGRATION = '1'
+    $env:PAO_GO_PATH = $paoGo
+    $env:PAO_DOCKER_PATH = $paoDocker
+    & $paoGo test ./internal/runner -run '^TestDockerHostSyntheticIsolationAcceptance$' -count=1 -v
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic Docker Desktop acceptance failed.' }
+} finally {
+    foreach ($paoName in $paoEnvironmentNames) {
+        [Environment]::SetEnvironmentVariable($paoName, $paoSavedEnvironment[$paoName])
+    }
+}
 ```
 
-The fixture proves that Docker uses the Linux engine, the target bind mount rejects writes, a distinct
+Ubuntu 24.04 AMD64, `sh`, from the same selected source revision:
+
+```sh
+(
+    set -eu
+    pao_go='/absolute/path/to/go1.27.1/bin/go'
+    pao_docker='/absolute/path/to/regular/docker'
+    export GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off
+    test "$(id -u)" -ne 0
+    test "$(id -g)" -ne 0
+    test "$("$pao_go" env GOVERSION)" = 'go1.27.1'
+    export PAO_DOCKER_INTEGRATION=1 PAO_GO_PATH="$pao_go" PAO_DOCKER_PATH="$pao_docker"
+    "$pao_go" test ./internal/runner -run '^TestDockerHostSyntheticIsolationAcceptance$' -count=1 -v
+)
+```
+
+Require exit code zero and an explicit `PASS` for the named test, with no `SKIP`.
+Record the source revision, Go/Docker versions, operating system, test output
+and cleanup result. Windows evidence does not establish Ubuntu acceptance.
+The Linux endpoint must be the current user's Docker Desktop socket at
+`$HOME/.docker/desktop/docker.sock`; ordinary/rootless Docker Engine is unsupported.
+
+When it passes, the fixture proves that Docker uses the Linux engine, the target bind mount rejects writes, a distinct
 temporary mount accepts writes, an undeclared host path is rejected, `network=none` leaves no active
 non-loopback interface, and the container is removed after completion. It does not authorize a real
 scanner: a reviewed runtime image and a verified imported toolchain are still required.

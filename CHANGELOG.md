@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased — candidate 0.2.1-rc.3
+
+This candidate is being prepared on the published source history for the next
+0.2.1 release. It has no signed tag or publication. Platform acceptance and
+review must identify this candidate's exact source and archive hashes; previous
+candidates' evidence is historical and does not approve these bytes.
+
+- Distinguish a verified empty Go dependency declaration from missing inventory.
+  The exception requires bounded `module`/`go` declarations, a plan-bound content
+  proof, unchanged target identity and matching successful Syft outputs/cataloger.
+  Checksums, workspaces, Go vendor inputs or unsupported directives prevent it.
+- Add optional plan `empty_go_module_sha256_v1` and report
+  `verified_empty_declared_ecosystems` fields. Observed ecosystems remain separate;
+  empty declarations do not prove the standard-library, build or runtime graph.
+- Advance native projection to `pao-native-projection/6`. Validate historical
+  `/5` reports against their matching historical schema. Old plans without the
+  content proof retain their inventory gap; rerendering does not backfill it.
+- Explain local candidate identity separately from signed published releases.
+- Accept omitted optional CycloneDX `components` for an empty Syft inventory,
+  while retaining the separate proof required for empty Go declarations.
+- Remove the verified-empty declaration claim when native Syft and CycloneDX
+  inventories disagree or the export is invalid; preserve the incomplete result.
+- Bound ScanCode to one worker with an explicit per-file timeout, matching the
+  container CPU budget.
+- Document the offline contributor build and verification commands.
+- Show applicability, supported/unsupported ecosystems and known support gaps
+  in the configured preview before requesting the run confirmation.
+- Make global and subcommand help succeed without reading configuration or
+  targets. Explain commands, profiles, the first single-scanner workflow and
+  the limits of `doctor`.
+- Name missing or invalid configuration/approval fields without echoing private
+  values. Preserve the existing strict parsing and approval requirements.
+- Explain a first `secrets` audit with one separately verified Linux AMD64
+  Gitleaks binary. Keep every approval placeholder invalid until actual review.
+- Verify the selected release tag and the downloaded platform archive instead
+  of always using the historical `v0.2.0` tag.
+
 ## 0.2.0
 
 This entry describes the version's scope;

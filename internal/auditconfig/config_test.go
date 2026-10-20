@@ -141,6 +141,45 @@ func TestPortableConfigRequiresCatalogButAllowsOmittedUnusedDependencies(t *test
 	}
 }
 
+func TestConfigurationErrorsNameKnownFieldsWithoutValues(t *testing.T) {
+	const privateValue = "synthetic-private-value-do-not-print"
+	for _, version := range []string{Version, PortableVersion} {
+		fields := map[string]string{
+			"version": version, "target": privateValue, "evidence_base": privateValue,
+			"report_base": privateValue, "toolchain_root": privateValue, "manifest_root": privateValue,
+		}
+		if version == Version {
+			fields["rule_pack_root"], fields["docker_base_provider"], fields["docker_scancode_provider"] = privateValue, privateValue, privateValue
+		} else {
+			fields["toolchain_catalog"] = privateValue
+		}
+		raw, _ := json.Marshal(fields)
+		for field := range fields {
+			t.Run(version+"/"+field, func(t *testing.T) {
+				for _, value := range []any{nil, "", 123, privateValue + "\n"} {
+					var bad map[string]any
+					json.Unmarshal(raw, &bad)
+					if value == nil {
+						delete(bad, field)
+					} else {
+						bad[field] = value
+					}
+					input, _ := json.Marshal(bad)
+					_, err := Decode(input)
+					if err == nil || !strings.Contains(err.Error(), `"`+field+`"`) || strings.Contains(err.Error(), privateValue) {
+						t.Fatalf("field=%s: expected actionable value-free rejection, got %v", field, err)
+					}
+				}
+			})
+		}
+		fields[privateValue] = "unknown"
+		raw, _ = json.Marshal(fields)
+		if _, err := Decode(raw); err == nil || strings.Contains(err.Error(), privateValue) {
+			t.Fatalf("unknown key must not be reflected: %v", err)
+		}
+	}
+}
+
 func TestResolveUsesUserConfigDirectoryWithoutCreatingIt(t *testing.T) {
 	base, err := os.UserConfigDir()
 	if err != nil {

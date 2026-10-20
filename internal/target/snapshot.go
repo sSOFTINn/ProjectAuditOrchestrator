@@ -1,11 +1,13 @@
 package target
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -23,11 +25,12 @@ const (
 )
 
 type FileEntry struct {
-	Path   string `json:"path"`
-	Size   int64  `json:"size"`
-	Mode   string `json:"mode"`
-	SHA256 string `json:"sha256,omitempty"`
-	Status string `json:"status"`
+	Path             string `json:"path"`
+	Size             int64  `json:"size"`
+	Mode             string `json:"mode"`
+	SHA256           string `json:"sha256,omitempty"`
+	Status           string `json:"status"`
+	GoModDeclaration string `json:"go_mod_declaration,omitempty"`
 }
 
 type Snapshot struct {
@@ -119,7 +122,12 @@ func SnapshotRootWithBudgetContext(ctx context.Context, root string, maxFileByte
 			return stop
 		}
 		h := sha256.New()
-		_, hashErr := streamFile(ctx, path, fi, maxFileBytes, &budget, h)
+		var declaration bytes.Buffer
+		var destination io.Writer = h
+		if entry.Name() == "go.mod" && fi.Size() <= MaxGoDeclarationBytes {
+			destination = io.MultiWriter(h, &declaration)
+		}
+		_, hashErr := streamFile(ctx, path, fi, maxFileBytes, &budget, destination)
 		if hashErr != nil {
 			s.Complete = false
 			f.Status = "HASH_ERROR"
@@ -127,6 +135,9 @@ func SnapshotRootWithBudgetContext(ctx context.Context, root string, maxFileByte
 			return fmt.Errorf("hash %s: %w", rel, hashErr)
 		}
 		f.SHA256 = hex.EncodeToString(h.Sum(nil))
+		if emptyGoDeclarations(declaration.Bytes()) {
+			f.GoModDeclaration = GoModNoDependenciesV1
+		}
 		s.Files = append(s.Files, f)
 		return nil
 	})
@@ -137,21 +148,38 @@ func SnapshotRootWithBudgetContext(ctx context.Context, root string, maxFileByte
 	}
 	sort.Slice(s.Files, func(i, j int) bool { return s.Files[i].Path < s.Files[j].Path })
 	sort.Strings(s.ReparsePaths)
+	s.ManifestHash = manifestHash(s)
+	// Snapshotting is deliberately non-executing. Git metadata is optional and
+	// must not be obtained by resolving an executable from the caller's PATH.
+	s.VCS = VCSState{System: "git", Dirty: "UNKNOWN", Status: "UNAVAILABLE"}
+	s.TargetID = snapshotID(s)
+	return s, nil
+}
+
+func manifestHash(s Snapshot) string {
 	h := sha256.New()
 	for _, f := range s.Files {
 		fmt.Fprintf(h, "%s\x00%d\x00%s\x00%s\n", f.Path, f.Size, f.SHA256, f.Status)
+		if f.GoModDeclaration != "" {
+			fmt.Fprintf(h, "go-mod-declaration\x00%s\x00%s\n", f.Path, f.GoModDeclaration)
+		}
 	}
 	for _, p := range s.ReparsePaths {
 		fmt.Fprintf(h, "reparse\x00%s\n", p)
 	}
-	s.ManifestHash = hex.EncodeToString(h.Sum(nil))
-	// Snapshotting is deliberately non-executing. Git metadata is optional and
-	// must not be obtained by resolving an executable from the caller's PATH.
-	s.VCS = VCSState{System: "git", Dirty: "UNKNOWN", Status: "UNAVAILABLE"}
-	identity := sha256.New()
-	fmt.Fprintf(identity, "%s\x00%s\x00%s\x00%s\x00%s", s.ManifestHash, s.VCS.System, s.VCS.Commit, s.VCS.Dirty, s.VCS.Status)
-	s.TargetID = "sha256:" + hex.EncodeToString(identity.Sum(nil))
-	return s, nil
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func snapshotID(s Snapshot) string {
+	h := sha256.New()
+	fmt.Fprintf(h, "%s\x00%s\x00%s\x00%s\x00%s", s.ManifestHash, s.VCS.System, s.VCS.Commit, s.VCS.Dirty, s.VCS.Status)
+	return "sha256:" + hex.EncodeToString(h.Sum(nil))
+}
+
+// VerifySnapshotIdentity binds content-derived declarations to the confirmed
+// target identity. Older snapshots without declarations retain their identities.
+func VerifySnapshotIdentity(s Snapshot) bool {
+	return s.ManifestHash == manifestHash(s) && s.TargetID == snapshotID(s)
 }
 
 func IsInside(root, candidate string) bool {

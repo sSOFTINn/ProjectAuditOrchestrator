@@ -358,6 +358,8 @@ func canonicalJSON(p Plan, retainDigest bool) ([]byte, error) {
 	copy.Detected.Indicators = append([]string(nil), p.Detected.Indicators...)
 	copy.Detected.ExpectedEcosystems = append([]string(nil), p.Detected.ExpectedEcosystems...)
 	copy.Detected.DependencyInputs = append([]detect.DependencyInput(nil), p.Detected.DependencyInputs...)
+	copy.Detected.EmptyGoModuleHashes = append([]string(nil), p.Detected.EmptyGoModuleHashes...)
+	sort.Strings(copy.Detected.EmptyGoModuleHashes)
 	sort.Strings(copy.Detected.ExpectedEcosystems)
 	sort.Slice(copy.Detected.DependencyInputs, func(i, j int) bool {
 		a, b := copy.Detected.DependencyInputs[i], copy.Detected.DependencyInputs[j]

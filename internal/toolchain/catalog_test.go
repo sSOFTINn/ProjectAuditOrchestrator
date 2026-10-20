@@ -67,3 +67,44 @@ func TestCatalogStrictOwnerApproval(t *testing.T) {
 		})
 	}
 }
+
+func TestCatalogApprovalErrorsIdentifyFieldsWithoutPrivateValues(t *testing.T) {
+	now := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+	const privateValue = "synthetic-owner-do-not-print"
+	base := Catalog{
+		APIVersion: CatalogVersion, Owner: privateValue, ApprovedAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour),
+		Tools: []CatalogTool{{Record: Record{ID: "gitleaks", Version: "test", SHA256: strings.Repeat("a", 64), SourceLicense: "MIT", Redistribution: "user-installed-only", RuntimeSHA256: strings.Repeat("b", 64), RuntimeAt: now}, Binary: "gitleaks/custom/bin/scanner", Provider: "base"}},
+	}
+	for _, tc := range []struct {
+		name, field string
+		mutate      func(*Catalog)
+	}{
+		{"version", "api_version", func(c *Catalog) { c.APIVersion = privateValue }},
+		{"unapproved", "owner", func(c *Catalog) { c.Owner = " UNAPPROVED " }},
+		{"owner-control", "owner", func(c *Catalog) { c.Owner = privateValue + "\n" }},
+		{"future", "approved_at", func(c *Catalog) { c.ApprovedAt = now.Add(time.Hour) }},
+		{"missing-time", "approved_at", func(c *Catalog) { c.ApprovedAt = time.Time{} }},
+		{"expired", "expires_at", func(c *Catalog) { c.ExpiresAt = now }},
+		{"too-long", "expires_at", func(c *Catalog) { c.ExpiresAt = now.Add(91 * 24 * time.Hour) }},
+		{"no-tools", "tools", func(c *Catalog) { c.Tools = nil }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bad := base
+			tc.mutate(&bad)
+			// Keep the empty tool list a JSON array so strict JSON accepts its type
+			// and the approval validator can explain which field needs review.
+			if bad.Tools == nil {
+				bad.Tools = []CatalogTool{}
+			}
+			raw, _ := json.Marshal(bad)
+			file := filepath.Join(t.TempDir(), "catalog.json")
+			if err := os.WriteFile(file, raw, 0600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := LoadCatalog(file, now)
+			if err == nil || !strings.Contains(err.Error(), `"`+tc.field+`"`) || strings.Contains(err.Error(), privateValue) {
+				t.Fatalf("expected actionable value-free rejection for %s, got %v", tc.field, err)
+			}
+		})
+	}
+}

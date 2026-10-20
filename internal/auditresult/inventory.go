@@ -13,13 +13,14 @@ import (
 // deliberately narrower than a full dependency graph: it cannot prove that
 // every package, transitive dependency, build extra or runtime is represented.
 type InventoryCoverage struct {
-	Status             string         `json:"status"`
-	Adequate           bool           `json:"adequate_for_detected_inputs"`
-	ExpectedEcosystems []string       `json:"expected_ecosystems"`
-	ObservedEcosystems []string       `json:"observed_ecosystems"`
-	Gaps               []InventoryGap `json:"gaps"`
-	Evidence           []string       `json:"evidence_refs,omitempty"`
-	Limitations        []string       `json:"limitations"`
+	Status                          string         `json:"status"`
+	Adequate                        bool           `json:"adequate_for_detected_inputs"`
+	ExpectedEcosystems              []string       `json:"expected_ecosystems"`
+	ObservedEcosystems              []string       `json:"observed_ecosystems"`
+	VerifiedEmptyDeclaredEcosystems []string       `json:"verified_empty_declared_ecosystems,omitempty"`
+	Gaps                            []InventoryGap `json:"gaps"`
+	Evidence                        []string       `json:"evidence_refs,omitempty"`
+	Limitations                     []string       `json:"limitations"`
 }
 
 // All public fields use closed vocabularies; names, versions, custom paths and
@@ -74,7 +75,7 @@ func knownManifestLimitation(value string) bool {
 	return false
 }
 
-func assessInventory(lock plan.Plan, coverage []Coverage, observations []Observation) InventoryCoverage {
+func assessInventory(lock plan.Plan, coverage []Coverage, observations []Observation, goEmptyVerified bool) InventoryCoverage {
 	r := InventoryCoverage{Status: "PARTIAL", ExpectedEcosystems: []string{}, ObservedEcosystems: []string{}, Gaps: []InventoryGap{}, Limitations: []string{
 		"path-based-expectations-do-not-enumerate-all-components",
 		"runtime-build-and-transitive-inventory-not-independently-proven",
@@ -141,6 +142,12 @@ func assessInventory(lock plan.Plan, coverage []Coverage, observations []Observa
 		if !verified {
 			r.Gaps = append(r.Gaps, InventoryGap{Ecosystem: ecosystem, Reason: "INVENTORY_EVIDENCE_UNAVAILABLE"})
 		} else if !observed[ecosystem] {
+			if ecosystem == "Go" && goEmptyVerified && len(lock.Detected.EmptyGoModuleHashes) > 0 {
+				r.VerifiedEmptyDeclaredEcosystems = append(r.VerifiedEmptyDeclaredEcosystems, "Go")
+				r.Evidence = append(r.Evidence, lock.Detected.EmptyGoModuleHashes...)
+				r.Limitations = append(r.Limitations, "empty-declarations-do-not-prove-stdlib-or-build-graph")
+				continue
+			}
 			// A manifest can have no dependencies. Without content-level proof,
 			// empty inventory is unresolved, rather than a fabricated clean pass.
 			r.Gaps = append(r.Gaps, InventoryGap{Ecosystem: ecosystem, Reason: "EXPECTED_ECOSYSTEM_NOT_OBSERVED"})
@@ -159,6 +166,7 @@ func assessInventory(lock plan.Plan, coverage []Coverage, observations []Observa
 		}
 	}
 	r.Gaps = deduplicated
+	r.Evidence = unique(r.Evidence)
 	r.Adequate = len(r.Gaps) == 0
 	if r.Adequate {
 		r.Status = "ADEQUATE_FOR_DETECTED_ECOSYSTEMS"
@@ -233,7 +241,18 @@ func consistentInventoryExport(native []nativeItem, data []byte) bool {
 	if str(document, "bomFormat") != "CycloneDX" {
 		return false
 	}
-	components, ok := document["components"].([]any)
+	value, exists := document["components"]
+	components, ok := value.([]any)
+	if !exists {
+		// Syft omits this optional CycloneDX field for an empty SBOM.
+		// Absence is consistent only when native inventory is also empty.
+		for _, item := range native {
+			if item.Category == "inventory" {
+				return false
+			}
+		}
+		return str(document, "specVersion") != ""
+	}
 	if !ok || len(components) > maxItems {
 		return false
 	}
