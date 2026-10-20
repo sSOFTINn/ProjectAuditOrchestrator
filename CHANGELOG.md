@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased — candidate 0.2.1-rc.3
+## 0.2.1
 
-This candidate is being prepared on the published source history for the next
-0.2.1 release. It has no signed tag or publication. Platform acceptance and
-review must identify this candidate's exact source and archive hashes; previous
-candidates' evidence is historical and does not approve these bytes.
+This entry describes the version's scope; availability and the signed tag
+must be checked on the repository's Releases page. Platform acceptance and
+review must identify the exact source and archive hashes. Previous candidates'
+evidence is historical and does not approve a later release's bytes.
 
 - Distinguish a verified empty Go dependency declaration from missing inventory.
   The exception requires bounded `module`/`go` declarations, a plan-bound content
