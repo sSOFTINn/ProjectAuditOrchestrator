@@ -22,8 +22,6 @@ candidates' evidence is historical and does not approve these bytes.
   while retaining the separate proof required for empty Go declarations.
 - Remove the verified-empty declaration claim when native Syft and CycloneDX
   inventories disagree or the export is invalid; preserve the incomplete result.
-- Bound ScanCode to one worker with an explicit per-file timeout, matching the
-  container CPU budget.
 - Document the offline contributor build and verification commands.
 - Show applicability, supported/unsupported ecosystems and known support gaps
   in the configured preview before requesting the run confirmation.
