@@ -7,9 +7,9 @@ legal verdict.
 
 ## Scope
 
-This source prepares `v0.3.0` on the bounded `v0.2.0` scope, with unreleased changes
-listed in the [changelog](CHANGELOG.md). An unreleased candidate is not a signed
-or approved release.
+Version `v0.3.0` adds setup and recovery to the bounded `v0.2.0` scope, with changes
+listed in the [changelog](CHANGELOG.md). Verify the matching signed tag and release
+archives before treating a source checkout or local build as an approved release.
 The [v0.3 scope](docs/release/v0.3-public-scope.md) records implementation,
 support boundaries and verification requirements. Internal planning, review and
 acceptance records are retained separately from the public source.
