@@ -17,6 +17,7 @@ import (
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/artifact"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/installation"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/toolchain"
 )
 
@@ -263,5 +264,13 @@ func testDockerHost(t *testing.T, docker, image string) DockerHost {
 		sum := sha256.Sum256(data)
 		return "sha256:" + hex.EncodeToString(sum[:])
 	}
-	return DockerHost{DockerPath: docker, DockerSHA256: digest(docker), SandboxPath: supervisor, SandboxSHA256: digest(supervisor), RuntimeImage: image, RuntimeApproval: RuntimeApproval{ID: "synthetic-local-acceptance", Owner: "PAO maintainer synthetic test", EvidenceDigest: image, ExpiresAt: time.Now().UTC().Add(time.Hour)}}
+	state := filepath.Join(t.TempDir(), "installation")
+	if _, err := installation.Initialize(state); err != nil {
+		t.Fatal(err)
+	}
+	preparedCLI, err := PrepareDockerCLI(ctx, docker, digest(docker), state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return DockerHost{DockerPath: preparedCLI.Path, DockerSHA256: preparedCLI.SHA256, InstallationState: state, AuditID: "synthetic-local-acceptance", SandboxPath: supervisor, SandboxSHA256: digest(supervisor), RuntimeImage: image, RuntimeApproval: RuntimeApproval{ID: "synthetic-local-acceptance", Owner: "PAO maintainer synthetic test", EvidenceDigest: image, ExpiresAt: time.Now().UTC().Add(time.Hour)}}
 }

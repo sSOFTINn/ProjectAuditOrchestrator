@@ -28,7 +28,7 @@ remain distinct acceptance gates; hosted Windows Server CI is not Windows 11 evi
 ## Build and public upload boundary
 
 CI and the release build use `contents: read` and an exact `github.sha` checkout
-with `persist-credentials: false`. The pinned Go 1.27.1 preparation is explicit;
+with `persist-credentials: false`. The pinned Go 1.27.3 preparation is explicit;
 subsequent Go/schema/mock tests run without dependency network access. The release
 checkout fetches full history and requires a stable candidate to equal the fetched
 `origin/main` commit. Two builds use separate new output and Go cache directories;

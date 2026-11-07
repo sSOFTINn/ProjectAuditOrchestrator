@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/local-audit-config/v3",
+  "title": "PAO external operator configuration with durable installation state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "target", "evidence_base", "report_base", "toolchain_root", "manifest_root", "toolchain_catalog", "installation_state"],
+  "properties": {
+    "version": {"const": "pao.dev/local-audit-config/v3"},
+    "target": {"type": "string", "minLength": 1},
+    "evidence_base": {"type": "string", "minLength": 1},
+    "report_base": {"type": "string", "minLength": 1},
+    "toolchain_root": {"type": "string", "minLength": 1},
+    "manifest_root": {"type": "string", "minLength": 1},
+    "toolchain_catalog": {"type": "string", "minLength": 1},
+    "installation_state": {"type": "string", "minLength": 1},
+    "rule_pack_root": {"type": "string"},
+    "docker_base_provider": {"type": "string"},
+    "docker_scancode_provider": {"type": "string"}
+  },
+  "$comment": "Runtime rejects duplicate/case-variant keys, nulls, invalid UTF-8, input above 64 KiB, unsafe paths and overlaps. installation_state is an existing protected directory shared by every configuration in an installation, separate from target, configuration, trusted inputs and outputs. The installation manifest and pending journal are validated by the execution admission gate. Historical v1/v2 configurations require explicit import for execution; the original file is never migrated in place."
+}

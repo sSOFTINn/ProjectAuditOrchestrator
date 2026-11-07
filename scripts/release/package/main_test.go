@@ -42,7 +42,7 @@ func fixture(t *testing.T, platform string) (string, string) {
 	}
 	privatePath := filepath.Join(t.TempDir(), "BUILD-METADATA.json")
 	fixtureHash := digest([]byte("synthetic fixture; never executed\n"))
-	data, err := json.Marshal(metadata{Version: testVersion, Revision: strings.Repeat("a", 40), SourceState: "modified", SourceTreeSHA256: strings.Repeat("b", 64), SandboxSHA256: fixtureHash, PaoSHA256: map[string]string{"windows": fixtureHash, "linux": fixtureHash}, GoVersion: "go1.27.1", AsOf: "2026-10-01T00:00:00Z"})
+	data, err := json.Marshal(metadata{Version: testVersion, Revision: strings.Repeat("a", 40), SourceState: "modified", SourceTreeSHA256: strings.Repeat("b", 64), SandboxSHA256: fixtureHash, ProbeSHA256: fixtureHash, RecipesSHA256: fixtureHash, PaoSHA256: map[string]string{"windows": fixtureHash, "linux": fixtureHash}, GoVersion: "go1.27.3", AsOf: "2026-10-01T00:00:00Z"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestPrivateMetadataRequiredForPackAndStrictWhenProvided(t *testing.T) {
 		"revision":       strings.ReplaceAll(valid, strings.Repeat("a", 40), "invalid"),
 		"source-tree":    strings.ReplaceAll(valid, strings.Repeat("b", 64), "invalid"),
 		"source-state":   strings.ReplaceAll(valid, "modified", "unknown"),
-		"go-version":     strings.ReplaceAll(valid, "go1.27.1", "unknown"),
+		"go-version":     strings.ReplaceAll(valid, "go1.27.3", "unknown"),
 		"timestamp":      strings.ReplaceAll(valid, "2026-10-01T00:00:00Z", "unknown"),
 		"oversized":      strings.Repeat(" ", 16385) + valid,
 		"sandbox-digest": strings.ReplaceAll(valid, digest([]byte("synthetic fixture; never executed\n")), strings.Repeat("0", 64)),
@@ -706,7 +706,7 @@ func writeArchiveFiles(t *testing.T, files map[string][]byte, platform string) s
 		writer := tar.NewWriter(compressed)
 		for name, data := range files {
 			mode := int64(0644)
-			if name == "pao" || name == "pao-sandbox-linux-amd64" {
+			if name == "pao" || name == "pao-sandbox-linux-amd64" || name == "pao-probe-linux-amd64" {
 				mode = 0755
 			}
 			if err := writer.WriteHeader(&tar.Header{Name: name, Mode: mode, Size: int64(len(data)), Typeflag: tar.TypeReg, Format: tar.FormatUSTAR}); err != nil {

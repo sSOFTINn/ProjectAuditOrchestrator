@@ -43,6 +43,31 @@ func TestPreflightRejectsStalePreparedState(t *testing.T) {
 	}
 }
 
+func TestDatabaseFreshnessUsesScannerSpecificLimit(t *testing.T) {
+	now := time.Date(2026, 11, 7, 12, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		id     string
+		age    time.Duration
+		reason string
+	}{
+		{"grype", 5 * 24 * time.Hour, ""},
+		{"grype", 5*24*time.Hour + time.Nanosecond, ReasonDatabaseStale},
+		{"grype", 6 * 24 * time.Hour, ReasonDatabaseStale},
+		{"trivy", 6 * 24 * time.Hour, ""},
+		{"osv-scanner", MaximumPrerequisiteAge, ""},
+		{"trivy", MaximumPrerequisiteAge + time.Nanosecond, ReasonDatabaseStale},
+	} {
+		registry, err := New([]Record{{ID: tc.id, Version: "synthetic", SHA256: digest("binary"), SourceLicense: "Apache-2.0", Redistribution: "user-installed-only", DatabaseSHA256: digest("db"), DatabaseAt: now.Add(-tc.age)}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := registry.Preflight(Requirement{ToolID: tc.id, Capability: "vulnerability", RequiresDatabase: true, MaximumDatabaseAge: DatabaseMaximumAge(tc.id)}, now)
+		if got.ReasonCode != tc.reason || (got.Status == "AVAILABLE_NOT_STARTED") != (tc.reason == "") {
+			t.Fatalf("%s age %s: %#v", tc.id, tc.age, got)
+		}
+	}
+}
+
 func TestPreflightPrerequisiteTimestampBoundaries(t *testing.T) {
 	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
 	prerequisites := []struct {

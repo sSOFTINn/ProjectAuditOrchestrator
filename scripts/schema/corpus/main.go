@@ -13,6 +13,9 @@ import (
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditresult"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/buildinfo"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/doctor"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/localaudit"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/normalize"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/plan"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/policy"
@@ -155,6 +158,31 @@ func run() error {
 	if err := writeValue("audit-config-v2", "local-audit-config-v2", config); err != nil {
 		return err
 	}
+	config.Version, config.InstallationState = auditconfig.InstallationVersion, "/synthetic/installation-state"
+	if err := writeValue("audit-config-v3", "local-audit-config-v3", config); err != nil {
+		return err
+	}
+	producer, err := buildinfo.Current()
+	if err != nil {
+		return err
+	}
+	summary := localaudit.RunSummary{Version: localaudit.RunSummaryVersion, AuditID: "synthetic-run", Profile: "mvp", PlanDigest: digest, ConfigurationDigest: digest, TargetID: digest, Producer: &producer, ProducerStatus: "RECORDED", ExecutionStatus: "COMPLETED", ReviewStatus: "REVIEW_REQUIRED", ResultStatus: "REVIEW_REQUIRED", ReportStatus: "GENERATED", InventoryCoverageStatus: "PARTIAL", ExitCode: 4, EvidenceDirectory: "/synthetic/evidence/run", ReportDirectory: "/synthetic/reports/run", ReasonCodes: []string{}}
+	if err := writeValue("run-summary", "run-summary-v1", summary); err != nil {
+		return err
+	}
+	summary.Producer, summary.ProducerStatus, summary.ExecutionStatus, summary.ExitCode = nil, "UNAVAILABLE", "FAILED", 3
+	summary.ResultStatus, summary.ReportStatus, summary.ReasonCodes = "UNAVAILABLE", "FAILED", []string{"REPORT_WRITE_FAILED"}
+	if err := writeValue("run-summary-unavailable", "run-summary-v1", summary); err != nil {
+		return err
+	}
+	diagnosis := doctor.Result{APIVersion: doctor.Version, Status: "SETUP_REQUIRED", Profile: "mvp", Scope: "profile-prerequisites", CheckedAt: stamp, Producer: &producer, ProducerStatus: "RECORDED", Checks: []doctor.Check{{ID: "synthetic.prerequisite", Status: "SETUP_REQUIRED", Reason: "Synthetic missing prerequisite", NextAction: "Prepare synthetic prerequisite"}}}
+	if err := writeValue("doctor", "doctor-v1", diagnosis); err != nil {
+		return err
+	}
+	diagnosis.Producer, diagnosis.ProducerStatus = nil, "UNAVAILABLE"
+	if err := writeValue("doctor-unavailable", "doctor-v1", diagnosis); err != nil {
+		return err
+	}
 	provider := runner.DockerProviderConfig{APIVersion: runner.DockerProviderConfigVersion, DockerPath: "/synthetic/bin/docker", DockerSHA256: digest, RuntimeImage: digest, RuntimeApproval: runner.RuntimeApproval{ID: "SYNTHETIC-NOT-APPROVAL", Owner: "synthetic-corpus", EvidenceDigest: digest, ExpiresAt: stamp.AddDate(0, 1, 0)}}
 	if err := writeValue("docker-provider", "docker-provider-v1alpha1", provider); err != nil {
 		return err
@@ -241,7 +269,7 @@ func releaseProvenanceProfile(stamp time.Time, hosted bool) map[string]any {
 			"buildDefinition": map[string]any{
 				"buildType":          "https://pao.dev/release/v1",
 				"externalParameters": map[string]any{"version": version},
-				"internalParameters": map[string]any{"go_version": "go1.27.1", "source_state": "modified", "source_tree_sha256": strings.Repeat("a", 64)},
+				"internalParameters": map[string]any{"go_version": "go1.27.3", "source_state": "modified", "source_tree_sha256": strings.Repeat("a", 64)},
 				"resolvedDependencies": []map[string]any{{
 					"uri": "git+https://github.com/sSOFTINn/ProjectAuditOrchestrator", "digest": map[string]any{"gitCommit": strings.Repeat("b", 40)},
 				}},

@@ -32,15 +32,17 @@ type prepareExecutionHost interface {
 }
 
 type LaunchResult struct {
-	Status          string
-	Reason          string
-	MediaType       string
-	RawOutput       []byte
-	Stderr          []byte
-	StderrTruncated bool
-	StdoutTruncated bool
-	ExitCode        *int
-	DiagnosticCode  string
+	Status           string
+	Reason           string
+	MediaType        string
+	RawOutput        []byte
+	Stderr           []byte
+	StderrTruncated  bool
+	StdoutTruncated  bool
+	ExitCode         *int
+	DiagnosticCode   string
+	containerStarted bool   // fixed preparation timeout proof, never caller authority
+	lifecycleID      string // retained journal entry whose cleanup was verified
 }
 
 // CapabilityError proves that a scanner was not launched because a mandatory
@@ -387,7 +389,7 @@ func (h HostRunner) Execute(ctx context.Context, spec ExecutionSpec, planDigest,
 func executionRequirement(spec ExecutionSpec, capability string) toolchain.Requirement {
 	return toolchain.Requirement{
 		ToolID: spec.ToolID, Capability: capability,
-		RequiresDatabase: spec.DatabaseDigest != "", MaximumDatabaseAge: toolchain.MaximumPrerequisiteAge,
+		RequiresDatabase: spec.DatabaseDigest != "", MaximumDatabaseAge: toolchain.DatabaseMaximumAge(spec.ToolID),
 		RequiresState: spec.StateDigest != "", MaximumStateAge: toolchain.MaximumPrerequisiteAge,
 		RequiresRuntime: spec.RuntimeDigest != "", MaximumRuntimeAge: toolchain.MaximumPrerequisiteAge,
 		RequiresRulePack: spec.RulePackDigest != "", MaximumRulePackAge: toolchain.MaximumPrerequisiteAge,

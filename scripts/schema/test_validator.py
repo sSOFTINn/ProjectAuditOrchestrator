@@ -72,7 +72,7 @@ def main():
     representatives = ["sarif-findings", "cyclonedx-findings", "spdx-findings",
                        "canonical-finding", "library-portable-finding", "adapter-syft",
                        "plan-go", "public-report-go", "audit-config-v1", "audit-config-v2",
-                       "docker-provider", "toolchain-catalog",
+                       "audit-config-v3", "run-summary", "doctor", "docker-provider", "toolchain-catalog",
                        "release-provenance-local", "release-provenance-hosted"]
     for case in representatives:
         reject(case, lambda doc: doc.__setitem__("UNKNOWN_PUBLIC_FIELD", True))
@@ -85,7 +85,8 @@ def main():
                       ("spdx-findings", "spdxVersion"), ("canonical-finding", "version"),
                       ("adapter-syft", "api_version"), ("plan-go", "version"),
                       ("public-report-go", "version"), ("audit-config-v1", "version"),
-                      ("audit-config-v2", "version"), ("docker-provider", "api_version"),
+                      ("audit-config-v2", "version"), ("audit-config-v3", "version"),
+                      ("run-summary", "version"), ("doctor", "api_version"), ("docker-provider", "api_version"),
                       ("toolchain-catalog", "api_version")]:
         reject(case, lambda doc, key=key: doc.__setitem__(key, "UNKNOWN_FUTURE_VERSION"))
     reject("cyclonedx-findings", lambda doc: doc.__setitem__("serialNumber", "urn:uuid:" + "a" * 32))
@@ -119,6 +120,22 @@ def main():
     reject("toolchain-catalog", lambda doc: doc["tools"][0].__setitem__("database", "syft/db"))
     reject("toolchain-catalog", lambda doc: doc["tools"][0].__setitem__("binary", "../outside/tool"))
     reject("docker-provider", lambda doc: doc["runtime_approval"].__setitem__("expires_at", "tomorrow"))
+    reject("audit-config-v3", remove(("installation_state",)))
+    reject("audit-config-v3", replace(("installation_state",), None))
+    reject("run-summary", remove(("producer",)))
+    reject("run-summary", replace(("execution_status",), "SAFE"))
+    reject("run-summary", replace(("review_status",), "APPROVED"))
+    reject("run-summary", replace(("exit_code",), 0))
+    reject("run-summary", replace(("reason_codes",), ["PRIVATE_SCANNER_TEXT"]))
+    reject("run-summary-unavailable", replace(("producer",), cases["run-summary"][1]["producer"]))
+    reject("doctor", replace(("target_inspected",), True))
+    reject("doctor", replace(("network_access",), True))
+    reject("doctor", replace(("isolation_tested",), True))
+    reject("doctor", replace(("checks", 0, "status"), "APPROVED"))
+    reject("doctor", replace(("checks", 0, "raw_error"), "private path"))
+    reject("doctor", remove(("producer",)))
+    reject("doctor-unavailable", replace(("status",), "READY"))
+    reject("doctor-unavailable", replace(("producer",), cases["doctor"][1]["producer"]))
 
     # Every field in PAO's unsigned release provenance is validated at its
     # actual nested path. These are strict producer-profile rules, not a claim
@@ -184,7 +201,7 @@ def main():
         (definition + ("externalParameters", "version"), "UNKNOWN_FUTURE_VERSION", "pattern"),
         (definition + ("externalParameters", "version"), "0.2.0\n", "not"),
         (definition + ("internalParameters", "go_version"), "go1.27", "pattern"),
-        (definition + ("internalParameters", "go_version"), "go1.27.1\n", "not"),
+        (definition + ("internalParameters", "go_version"), "go1.27.3\n", "not"),
         (definition + ("internalParameters", "source_state"), "unknown", "enum"),
         (definition + ("internalParameters", "source_tree_sha256"), "a" * 63, "minLength"),
         (definition + ("internalParameters", "source_tree_sha256"), "A" * 64, "pattern"),

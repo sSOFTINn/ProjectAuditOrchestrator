@@ -14,8 +14,11 @@ import (
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/buildinfo"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/detect"
+	readiness "github.com/sSOFTINn/ProjectAuditOrchestrator/internal/doctor"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/localaudit"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/plan"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/recovery"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/setup"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/target"
 )
 
@@ -40,7 +43,17 @@ func main() {
 		fmt.Println(buildinfo.Version)
 		code = exitOK
 	case "doctor":
-		code = doctor()
+		if len(os.Args) == 2 {
+			code = doctor()
+		} else {
+			code = withSignals(func(ctx context.Context) int { return readiness.Command(ctx, os.Args[2:], os.Stdout, os.Stderr) })
+		}
+	case "setup":
+		code = withSignals(func(ctx context.Context) int { return setup.Command(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr) })
+	case "recover":
+		code = withSignals(func(ctx context.Context) int {
+			return recovery.Command(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr)
+		})
 	case "inspect":
 		code = inspect(os.Args[2:])
 	case "plan":
@@ -61,13 +74,19 @@ func usage(w io.Writer) {
   pao --help
   pao version
   pao doctor
+  pao setup --root PATH --profile secrets [--apply]
+  pao doctor --config FILE --profile mvp [--json]
+  pao setup --verify --config FILE
+  pao recover --config FILE --run ID [--apply]
   pao inspect --target PATH
   pao plan --target PATH --profile fast --dry-run
   pao audit --config FILE --profile secrets [--execute]
 
 Команди:
   version  Версія PAO.
-  doctor   Ідентичність PAO; не перевірка готовності Docker чи сканерів.
+  doctor   Ідентичність PAO; із --config перевіряє готовність залежностей.
+  setup    План і явна підготовка залежностей; окрема синтетична перевірка.
+  recover  Перегляд незавершеного запуску; --apply потребує точного підтвердження.
   inspect  Читання структури цілі без запуску її коду або сканерів.
   plan     Попередній план без сканерів; --dry-run обов'язковий.
            Профілі цього окремого режиму: fast, mvp.
@@ -84,9 +103,11 @@ func usage(w io.Writer) {
   sbom-quality  Syft, sbomqs: інформаційна оцінка SBOM.
   mvp           Усі адаптери з перевіркою застосовності й готовності.
 
-Початок: перевірте пакет, прочитайте START_HERE.uk.md і використайте
-синтетичну ціль. Для першого налаштованого аудиту достатньо профілю secrets;
-сканер Linux AMD64 та погоджена Docker Desktop Linux VM готуються окремо.
+Початок: перевірте пакет і використайте setup із профілем secrets.
+Онлайн-підготовка не читає проєкт. Аудит працює без мережі після точного RUN.
+Docker Desktop встановлюється окремо; його умови приймає користувач.
+Для виконання потрібна конфігурація v3; setup імпортує попередні конфігурації
+в нову установку, зберігаючи оригінал.
 FILE — абсолютний шлях або коротке ім'я у приватній папці PAO/config.
 Прапорці команди: pao audit --help, pao inspect --help, pao plan --help.
 
@@ -94,6 +115,12 @@ audit: код 0 — лише preview/довідка; 3 — помилка кон
 4 — потрібен розгляд/неповне виконання; 5 — відмова підтвердження або політики.
 PAO не надає автоматичного висновку про безпеку чи юридичну відповідність.
 Сумісний режим лише читання: pao audit --target PATH --no-adapters.`)
+}
+
+func withSignals(command func(context.Context) int) int {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	return command(ctx)
 }
 
 func audit(args []string) int {

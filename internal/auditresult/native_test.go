@@ -21,7 +21,7 @@ var nativeFixtures = map[string]string{
 const qualityFixture = `{"files":[{"avg_score":8.5}]}`
 
 func TestSyftUnknownNativeSchemaCannotBecomeCompleteInventory(t *testing.T) {
-	for _, version := range []string{"1", "16.1.4", "16.1.11", "17.0.0", "future"} {
+	for _, version := range []string{"1", "16.1.4", "16.1.11", "16.1.12", "16.1.14", "17.0.0", "future"} {
 		raw := strings.Replace(nativeFixtures["syft"], "16.1.3", version, 1)
 		parsed := parseNative("syft", []byte(raw))
 		if parsed.Status != "UNSUPPORTED_FORMAT" || len(parsed.Items) != 0 || !strings.Contains(strings.Join(parsed.Reasons, ","), "UNSUPPORTED_NATIVE_SCHEMA") {
@@ -30,8 +30,8 @@ func TestSyftUnknownNativeSchemaCannotBecomeCompleteInventory(t *testing.T) {
 	}
 }
 
-func TestPinnedSyft1511NativeSchemaPreservesInventory(t *testing.T) {
-	// The pinned upstream emits schema 16.1.10. Additional metadata must not
+func TestHistoricalSyft1511NativeSchemaPreservesInventory(t *testing.T) {
+	// Historical upstream evidence uses schema 16.1.10. Additional metadata must not
 	// hide the package identity used by inventory completeness checks.
 	const raw = `{"schema":{"version":"16.1.10"},"descriptor":{"name":"syft","version":"1.51.1"},"artifacts":[{"id":"synthetic-package","name":"golang.org/x/text","version":"v0.3.0","type":"go-module","purl":"pkg:golang/golang.org/x/text@v0.3.0","metadata":{"h1Digest":"synthetic","goCompiledVersion":""}}],"source":{"type":"directory"}}`
 	p := parseNative("syft", []byte(raw))

@@ -1,6 +1,6 @@
 # Governance
 
-PAO preserves the public [product boundaries](docs/release/v0.2-public-scope.md)
+PAO preserves the public [product boundaries](docs/release/v0.3-public-scope.md)
 and [security model](docs/security/threat-model.md). Contributions use DCO 1.1
 sign-off (`git commit -s`); a CLA is not required for the current release scope.
 

@@ -23,7 +23,7 @@ import (
 func portableSetup(t *testing.T) (auditconfig.Config, string, toolchain.Catalog) {
 	t.Helper()
 	c, file := setup(t)
-	c.Version = auditconfig.PortableVersion
+	c.Version = auditconfig.InstallationVersion
 	c.RulePackRoot = ""
 	c.DockerScanCodeProvider = ""
 	c.ToolchainCatalog = filepath.Join(filepath.Dir(file), "catalog.json")
@@ -160,12 +160,20 @@ func TestPortableCatalogExpiryNarrowsHostAuthority(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// Reach the approval gate with a complete setup contract. Preparing
+			// these synthetic CLI bytes never invokes Docker; Linux returns its
+			// private generation path rather than the original fixture path.
+			preparedCLI, err := runner.PrepareDockerCLI(context.Background(), provider.DockerPath, provider.DockerSHA256, c.InstallationState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			provider.DockerPath = preparedCLI.Path
 			want := catalog.ExpiresAt
 			if earliest == "provider" {
 				provider.RuntimeApproval.ExpiresAt = time.Now().UTC().Add(30 * time.Minute)
 				want = provider.RuntimeApproval.ExpiresAt
-				writeJSONTest(t, c.DockerBaseProvider, provider)
 			}
+			writeJSONTest(t, c.DockerBaseProvider, provider)
 			p, err := prepare(file, "secrets")
 			if err != nil || !p.baseHost.RuntimeApproval.ExpiresAt.Equal(want) {
 				t.Fatalf("host did not retain the earliest approval expiry: %v %v", p.baseHost.RuntimeApproval.ExpiresAt, err)
@@ -185,6 +193,7 @@ func TestPortableCatalogExpiryNarrowsHostAuthority(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			host.AuditID = "synthetic-expiry-check"
 			result, err := host.Launch(context.Background(), spec)
 			if err == nil || !strings.Contains(err.Error(), "runtime approval has expired") || len(result.RawOutput) != 0 {
 				t.Fatalf("expired catalog reached a later launch stage: %#v %v", result, err)

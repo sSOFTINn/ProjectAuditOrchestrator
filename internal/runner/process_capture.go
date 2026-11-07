@@ -39,6 +39,8 @@ func (b *boundedCapture) Write(p []byte) (int, error) {
 type commandOutput struct {
 	stdout, stderr                   []byte
 	stdoutTruncated, stderrTruncated bool
+	containerStarted                 bool
+	lifecycleID                      string
 }
 type capturedCommand func(context.Context, string, ...string) (commandOutput, error)
 

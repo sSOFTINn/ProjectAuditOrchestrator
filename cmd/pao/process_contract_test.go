@@ -21,6 +21,7 @@ import (
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditresult"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/buildinfo"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/installation"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/toolchain"
 )
@@ -53,6 +54,9 @@ func TestProcessContracts(t *testing.T) {
 			{"plan", "--target", filepath.Join(fixture.target, "missing"), "--help"},
 			{"audit", "--config", fixture.invalid, "--execute", "--help"},
 			{"audit", "--target", filepath.Join(fixture.target, "missing"), "--no-adapters", "--help"},
+			{"doctor", "--config", fixture.invalid, "--help"},
+			{"setup", "--root", filepath.Join(fixture.target, "missing"), "--apply", "--help"},
+			{"recover", "--config", fixture.invalid, "--apply", "--help"},
 		} {
 			result := processInvoke(t, primary, args, "", nil)
 			if len(args) > 1 {
@@ -263,7 +267,11 @@ func processFixture(t *testing.T, repository string) processFixturePaths {
 	// Any regression that tries to launch it fails; no provider exists for it.
 	catalog := toolchain.Catalog{APIVersion: toolchain.CatalogVersion, Owner: "synthetic-process-test", ApprovedAt: now.Add(-time.Hour), ExpiresAt: now.Add(time.Hour), Tools: []toolchain.CatalogTool{{Record: toolchain.Record{ID: "zizmor", Version: "synthetic", SHA256: strings.Repeat("a", 64), SourceLicense: "MIT", Redistribution: "user-installed-only", RuntimeSHA256: strings.Repeat("b", 64), RuntimeAt: now}, Binary: "absent/scanner", Provider: "base"}}}
 	processWriteJSON(t, catalogPath, catalog)
-	processWriteJSON(t, p.config, auditconfig.Config{Version: auditconfig.PortableVersion, Target: p.target, EvidenceBase: p.evidence, ReportBase: p.reports, ToolchainRoot: toolsRoot, ManifestRoot: filepath.Join(repository, "adapters"), ToolchainCatalog: catalogPath})
+	state := filepath.Join(root, "state")
+	if _, err := installation.Initialize(state); err != nil {
+		t.Fatal(err)
+	}
+	processWriteJSON(t, p.config, auditconfig.Config{Version: auditconfig.InstallationVersion, Target: p.target, EvidenceBase: p.evidence, ReportBase: p.reports, ToolchainRoot: toolsRoot, ManifestRoot: filepath.Join(repository, "adapters"), ToolchainCatalog: catalogPath, InstallationState: state})
 	if err := os.WriteFile(p.invalid, []byte(`{"unexpected":true}`), 0600); err != nil {
 		t.Fatal(err)
 	}

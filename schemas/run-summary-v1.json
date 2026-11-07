@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pao.dev/schemas/run-summary/v1",
+  "title": "PAO private local run summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "audit_id", "profile", "plan_digest", "configuration_digest", "target_id", "producer_status", "execution_status", "review_status", "result_status", "report_status", "coverage_complete", "analysis_coverage_complete", "inventory_coverage_status", "exit_code", "evidence_directory", "report_directory", "reason_codes"],
+  "properties": {
+    "version": {"const": "pao.dev/run-summary/v1"},
+    "audit_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "profile": {"enum": ["fast", "deep-sca", "license", "secrets", "sast", "ci-security", "sbom-quality", "mvp"]},
+    "plan_digest": {"$ref": "#/$defs/digest"},
+    "configuration_digest": {"$ref": "#/$defs/digest"},
+    "target_id": {"$ref": "#/$defs/digest"},
+    "producer": {"$ref": "https://pao.dev/schemas/producer/v1"},
+    "producer_status": {"enum": ["RECORDED", "UNAVAILABLE"]},
+    "execution_status": {"enum": ["COMPLETED", "INCOMPLETE", "CANCELLED", "POLICY_BLOCKED", "FAILED"]},
+    "review_status": {"const": "REVIEW_REQUIRED"},
+    "result_status": {"enum": ["REVIEW_REQUIRED", "INCOMPLETE", "POLICY_BLOCKED", "UNAVAILABLE"]},
+    "report_status": {"enum": ["GENERATED", "FAILED", "UNAVAILABLE"]},
+    "coverage_complete": {"type": "boolean"},
+    "analysis_coverage_complete": {"type": "boolean"},
+    "inventory_coverage_status": {"enum": ["ADEQUATE_FOR_DETECTED_ECOSYSTEMS", "NO_DETECTED_DEPENDENCY_INPUTS", "PARTIAL", "UNAVAILABLE"]},
+    "exit_code": {"enum": [3, 4, 5]},
+    "evidence_directory": {"type": "string", "minLength": 1},
+    "report_directory": {"type": "string", "minLength": 1},
+    "reason_codes": {
+      "type": "array", "uniqueItems": true, "maxItems": 8,
+      "items": {"enum": ["RUN_NOT_STARTED", "RUN_INCOMPLETE", "RUN_CANCELLED", "REPORT_WRITE_FAILED", "EXECUTION_POLICY_BLOCKED", "EXECUTION_FAILED", "EXECUTION_INCOMPLETE"]}
+    }
+  },
+  "$defs": {"digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}},
+  "allOf": [
+    {"if": {"properties": {"producer_status": {"const": "RECORDED"}}}, "then": {"required": ["producer"]}},
+    {"if": {"properties": {"producer_status": {"const": "UNAVAILABLE"}}}, "then": {"not": {"required": ["producer"]}}}
+  ],
+  "$comment": "Private local evidence only: absolute paths must never be copied into portable reports or public artifacts. COMPLETED describes adapter execution, not analysis coverage or security/legal approval. Existing numeric audit exit codes are preserved. Preview and refused confirmation create no run summary."
+}

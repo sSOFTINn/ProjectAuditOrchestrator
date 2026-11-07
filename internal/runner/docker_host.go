@@ -20,6 +20,7 @@ import (
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/buildinfo"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/installation"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/sandbox"
 )
 
@@ -41,18 +42,22 @@ var windowsAbsolutePath = regexp.MustCompile(`(?i)(^|[^a-z0-9_])[a-z]:[\\/]`)
 // Docker Desktop runtime. It requires Desktop's VM-backed Linux engine on
 // Windows or Linux; it does not offer a native-process/kernel fallback.
 type DockerHost struct {
-	DockerPath        string
-	DockerSHA256      string
-	RuntimeImage      string // exact local image ID: sha256:<64 hex characters>
-	RuntimeApproval   RuntimeApproval
-	SandboxPath       string // PAO's bundled static Linux supervisor, never scanner code
-	SandboxSHA256     string
-	preparedNative    bool
-	runDocker         dockerCommand
-	runCaptured       capturedCommand
-	now               func() time.Time
-	connection        func() (dockerConnection, error)                                 // synthetic-test seam
-	syntheticEnvelope func(ExecutionSpec, commandOutput, error) (commandOutput, error) // test-only protocol producer
+	DockerPath         string
+	DockerSHA256       string
+	RuntimeImage       string // exact local image ID: sha256:<64 hex characters>
+	RuntimeApproval    RuntimeApproval
+	SandboxPath        string // PAO's bundled static Linux supervisor, never scanner code
+	SandboxSHA256      string
+	InstallationState  string // private shared state; required for actual container launches
+	AuditID            string // logical audit or setup operation, never container authority
+	preparation        *preparationAdmission
+	recoveryDockerPath string
+	preparedNative     bool
+	runDocker          dockerCommand
+	runCaptured        capturedCommand
+	now                func() time.Time
+	connection         func() (dockerConnection, error)                                 // synthetic-test seam
+	syntheticEnvelope  func(ExecutionSpec, commandOutput, error) (commandOutput, error) // test-only protocol producer
 }
 
 func (h DockerHost) RuntimeIdentity() string { return h.RuntimeImage }
@@ -67,13 +72,28 @@ type RuntimeApproval struct {
 }
 
 func (a RuntimeApproval) Validate(now time.Time) error {
-	if a.ID == "" || a.Owner == "" || !sha256Reference.MatchString(a.EvidenceDigest) || a.ExpiresAt.IsZero() {
+	if !actualApprovalText(a.ID) || !actualApprovalText(a.Owner) || !sha256Reference.MatchString(a.EvidenceDigest) || a.ExpiresAt.IsZero() {
 		return errors.New("runtime approval requires ID, owner, SHA-256 evidence digest and expiry")
 	}
 	if !a.ExpiresAt.After(now) {
 		return errors.New("runtime approval has expired")
 	}
 	return nil
+}
+
+func actualApprovalText(value string) bool {
+	v := strings.ToUpper(strings.TrimSpace(value))
+	return v != "" && v != "UNAPPROVED" && v != "UNKNOWN" && v != "PENDING" && v != "REPLACE_ME" && !strings.HasPrefix(v, "REPLACE_") && !strings.ContainsAny(value, "\x00\r\n")
+}
+
+func (h DockerHost) validateRuntimeReview() error {
+	if h.preparation != nil {
+		if time.Since(h.preparation.createdAt) > 15*time.Minute || h.preparation.image != h.RuntimeImage || h.preparation.dockerDigest != h.DockerSHA256 {
+			return errors.New("preparation identity changed")
+		}
+		return nil
+	}
+	return h.RuntimeApproval.Validate(h.currentTime())
 }
 
 type dockerCommand func(context.Context, string, ...string) ([]byte, error)
@@ -85,7 +105,7 @@ func (h DockerHost) Capabilities(ctx context.Context) (SandboxProperties, error)
 	if err := validateImageID(h.RuntimeImage); err != nil {
 		return SandboxProperties{}, err
 	}
-	if err := h.RuntimeApproval.Validate(h.currentTime()); err != nil {
+	if err := h.validateRuntimeReview(); err != nil {
 		return SandboxProperties{}, err
 	}
 	output, err := h.command(ctx, "info", "--format", "{{json .}}")
@@ -128,6 +148,30 @@ func (h DockerHost) Launch(ctx context.Context, spec ExecutionSpec) (launched La
 	if err := spec.Validate(); err != nil {
 		return LaunchResult{}, err
 	}
+	if h.preparation != nil {
+		if err := h.preparation.validate(spec); err != nil {
+			return LaunchResult{}, err
+		}
+	}
+	if h.runDocker == nil && h.runCaptured == nil {
+		if h.InstallationState == "" || h.AuditID == "" {
+			return LaunchResult{}, errors.New("SETUP_REQUIRED: container execution requires installation state and an audit ID")
+		}
+		if err := installation.CheckReady(h.InstallationState); err != nil {
+			return LaunchResult{}, err
+		}
+		preparedCLI, err := readPreparedCLI(h.InstallationState, h.DockerSHA256)
+		if err != nil {
+			return LaunchResult{}, err
+		}
+		originalPath := h.recoveryDockerPath
+		if originalPath == "" {
+			originalPath = h.DockerPath
+		}
+		if preparedCLI.Path != originalPath {
+			return LaunchResult{}, errors.New("SETUP_REQUIRED: Docker CLI differs from the recoverable prepared generation")
+		}
+	}
 	if h.runDocker == nil && h.runCaptured == nil && hasUnconfirmedTeardown() {
 		return LaunchResult{}, errors.New("a prior container teardown is unconfirmed; operator recovery is required")
 	}
@@ -146,7 +190,7 @@ func (h DockerHost) Launch(ctx context.Context, spec ExecutionSpec) (launched La
 	if spec.RuntimeDigest != "" && spec.RuntimeDigest != h.RuntimeImage {
 		return LaunchResult{}, errors.New("execution runtime digest does not match Docker runtime image")
 	}
-	if err := h.RuntimeApproval.Validate(h.currentTime()); err != nil {
+	if err := h.validateRuntimeReview(); err != nil {
 		return LaunchResult{}, err
 	}
 	cleanupAfter := func(cleanup func() error) {
@@ -286,7 +330,7 @@ func (h DockerHost) Launch(ctx context.Context, spec ExecutionSpec) (launched La
 	if len(requestJSON) > 96<<10 {
 		return LaunchResult{}, errors.New("supervisor request exceeds its limit")
 	}
-	if err := h.RuntimeApproval.Validate(h.currentTime()); err != nil {
+	if err := h.validateRuntimeReview(); err != nil {
 		return LaunchResult{}, err
 	}
 	dockerArgs := []string{
@@ -335,17 +379,25 @@ func (h DockerHost) Launch(ctx context.Context, spec ExecutionSpec) (launched La
 			return LaunchResult{}, err
 		}
 	}
-	captured, commandErr := h.launchCommand(ctx, dockerArgs...)
+	captured, commandErr := h.launchTrackedCommand(ctx, spec, dockerArgs)
+	var lateAdmission *CapabilityError
+	if errors.As(commandErr, &lateAdmission) {
+		return LaunchResult{}, commandErr
+	}
+	var pendingCleanup *UnconfirmedContainerCleanupError
+	if errors.As(commandErr, &pendingCleanup) {
+		return LaunchResult{Status: Failed, DiagnosticCode: "CONTAINER_CLEANUP_UNCONFIRMED", Reason: "container teardown could not be confirmed; recover the recorded run", MediaType: dockerRawMediaType}, commandErr
+	}
 	if h.syntheticEnvelope != nil {
 		captured, commandErr = h.syntheticEnvelope(spec, captured, commandErr)
 	}
-	if ctx.Err() != nil || commandErr != nil {
+	if h.InstallationState == "" && (ctx.Err() != nil || commandErr != nil) {
 		if err := h.cleanupContainer(spec.ContainerName); err != nil {
 			return LaunchResult{Status: Failed, DiagnosticCode: "CONTAINER_CLEANUP_UNCONFIRMED", Reason: "container teardown could not be confirmed", MediaType: dockerRawMediaType, Stderr: captured.stderr, StderrTruncated: captured.stderrTruncated}, &UnconfirmedContainerCleanupError{ContainerName: spec.ContainerName, Cause: err}
 		}
 	}
 	envelope, outputErr := sandbox.Decode(captured.stdout, request)
-	result := LaunchResult{Stderr: captured.stderr, StderrTruncated: captured.stderrTruncated}
+	result := LaunchResult{Stderr: captured.stderr, StderrTruncated: captured.stderrTruncated, containerStarted: captured.containerStarted, lifecycleID: captured.lifecycleID}
 	evidence, mediaType := []byte(nil), dockerRawMediaType
 	if outputErr == nil && !captured.stdoutTruncated {
 		result.Stderr, result.StderrTruncated = envelope.Stderr, envelope.StderrTruncated

@@ -2,7 +2,7 @@
 
 Use this procedure to verify the exact source, signed tag and release archives.
 The version `0.2.0-rc.1` in the local example below is illustrative, not a published
-or approved candidate identity. See the [current release scope](release/v0.2-public-scope.md).
+or approved candidate identity. See the [current release scope](release/v0.3-public-scope.md).
 Planning, review and verification records are retained internally. A local
 build or this guide alone does not establish release approval.
 
@@ -18,16 +18,19 @@ Never upload that directory, test reports or the runner-local transfer manifest
 to a public repository, workflow artifact or release. The binary archives do
 not contain those evidence files.
 
-Each archive has exactly twenty-one allowlisted files: its host PAO binary,
-the owned static Linux `pao-sandbox-linux-amd64` supervisor, ten adapter
+Each v0.3 archive has exactly twenty-nine allowlisted files: its host PAO binary,
+the owned static Linux `pao-sandbox-linux-amd64` supervisor and
+`pao-probe-linux-amd64` synthetic probe, seven preparation recipe files, ten adapter
 manifests, three blank JSON templates, beginner guide, LICENSE, NOTICE, Go license,
-`VERSION.json` (version/platform/architecture) and a content manifest. The Linux binary has mode `0755`. Source
+`VERSION.json` (version/platform/architecture) and a content manifest. The Linux
+executables have mode `0755`. Recipe and probe hashes are bound into the host
+executable at build time and retained in private build metadata. Source
 archives are handled separately by GitHub for an approved tag; neither the packager
 nor the workflow publishes a GitHub Release or changes visibility.
 
 ## Build and verify locally without downloads
 
-From a trusted clean source checkout on Windows, in PowerShell 7.2+, with approved Go 1.27.1 already
+From a trusted clean source checkout on Windows, in PowerShell 7.2+, with approved Go 1.27.3 already
 installed. Replace `D:\staging\pao-candidate` with a new staging directory outside
 the repository and `D:\tools\go\bin\go.exe` with your local toolchain. Ordinary
 user rights suffice. These commands do not download tools or dependencies:

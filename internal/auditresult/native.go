@@ -339,9 +339,9 @@ func parseNative(id string, data []byte) parsed {
 		version := str(obj(m["schema"]), "version")
 		if version == "" {
 			p.gap("MISSING_SCHEMA_VERSION")
-		} else if version != "16.1.3" && version != "16.1.10" {
-			// Exact reviewed schemas only. Syft 1.51.1 emits 16.1.10;
-			// historical 16.1.3 evidence remains readable without admitting
+		} else if version != "16.1.3" && version != "16.1.10" && version != "16.1.13" {
+			// Exact reviewed schemas only. Syft 1.57.0 emits 16.1.13;
+			// historical 16.1.3/16.1.10 evidence remains readable without admitting
 			// an unreviewed later version as complete inventory.
 			p.Status, p.Reasons = "UNSUPPORTED_FORMAT", []string{"UNSUPPORTED_NATIVE_SCHEMA"}
 			return p

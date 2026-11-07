@@ -7,4 +7,6 @@ var (
 	Revision      = "unknown"
 	SourceState   = "unknown"
 	SandboxSHA256 = ""
+	ProbeSHA256   = ""
+	RecipesSHA256 = ""
 )

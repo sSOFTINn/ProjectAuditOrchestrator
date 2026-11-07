@@ -32,6 +32,8 @@ type metadata struct {
 	SourceState      string            `json:"source_state"`
 	SourceTreeSHA256 string            `json:"source_tree_sha256"`
 	SandboxSHA256    string            `json:"sandbox_sha256"`
+	ProbeSHA256      string            `json:"probe_sha256"`
+	RecipesSHA256    string            `json:"recipes_sha256"`
 	PaoSHA256        map[string]string `json:"pao_sha256"`
 	ArchivesSHA256   map[string]string `json:"archives_sha256,omitempty"`
 	GoVersion        string            `json:"go_version"`
@@ -47,7 +49,9 @@ type publicVersion struct {
 }
 
 func allowed(platform string) []string {
-	names := []string{cliName(platform), "pao-sandbox-linux-amd64", "audit.json", "toolchain.catalog.json", "docker-provider.json", "START_HERE.uk.md", "LICENSE", "NOTICE", "licenses/GO-LICENSE.txt", "VERSION.json", "PACKAGE-CONTENTS.json"}
+	names := []string{cliName(platform), "pao-sandbox-linux-amd64", "pao-probe-linux-amd64", "audit.json", "toolchain.catalog.json", "docker-provider.json", "START_HERE.uk.md", "LICENSE", "NOTICE", "licenses/GO-LICENSE.txt", "VERSION.json", "PACKAGE-CONTENTS.json",
+		"recipes/manifest.json", "recipes/runtime.Dockerfile", "recipes/prepare-state.py",
+		"recipes/opengrep/pao-baseline-v1/LICENSE", "recipes/opengrep/pao-baseline-v1/README.md", "recipes/opengrep/pao-baseline-v1/rules.yml", "recipes/opengrep/pao-baseline-v1/pao-input-manifest.json"}
 	for _, id := range adapters {
 		names = append(names, "adapters/"+id+"/manifest.json")
 	}
@@ -155,7 +159,7 @@ type blankProvider struct {
 
 func blankTemplates() map[string]any {
 	return map[string]any{
-		"audit.json":             map[string]string{"version": "pao.dev/local-audit-config/v2", "target": "REPLACE_WITH_ABSOLUTE_TARGET_DIRECTORY", "evidence_base": "REPLACE_WITH_SEPARATE_PRIVATE_EVIDENCE_DIRECTORY", "report_base": "REPLACE_WITH_SEPARATE_REPORT_DIRECTORY", "toolchain_root": "REPLACE_WITH_PRIVATE_INSTALLED_TOOLS_DIRECTORY", "manifest_root": "REPLACE_WITH_PACKAGE_ADAPTERS_DIRECTORY", "toolchain_catalog": "REPLACE_WITH_ABSOLUTE_PRIVATE_CATALOG_FILE", "docker_base_provider": "REPLACE_WITH_ABSOLUTE_PRIVATE_PROVIDER_FILE", "docker_scancode_provider": "", "rule_pack_root": ""},
+		"audit.json":             map[string]string{"version": "pao.dev/local-audit-config/v3", "installation_state": "REPLACE_WITH_PRIVATE_INSTALLATION_STATE_DIRECTORY", "target": "REPLACE_WITH_ABSOLUTE_TARGET_DIRECTORY", "evidence_base": "REPLACE_WITH_SEPARATE_PRIVATE_EVIDENCE_DIRECTORY", "report_base": "REPLACE_WITH_SEPARATE_REPORT_DIRECTORY", "toolchain_root": "REPLACE_WITH_PRIVATE_INSTALLED_TOOLS_DIRECTORY", "manifest_root": "REPLACE_WITH_PACKAGE_ADAPTERS_DIRECTORY", "toolchain_catalog": "REPLACE_WITH_ABSOLUTE_PRIVATE_CATALOG_FILE", "docker_base_provider": "REPLACE_WITH_ABSOLUTE_PRIVATE_PROVIDER_FILE", "docker_scancode_provider": "", "rule_pack_root": ""},
 		"toolchain.catalog.json": blankCatalog{"pao.dev/toolchain-catalog/v1", "UNAPPROVED", "1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z", []string{}},
 		"docker-provider.json":   blankProvider{"pao.dev/docker-provider/v1alpha1", "REPLACE_WITH_ABSOLUTE_DOCKER_CLI_PATH", "REPLACE_WITH_SHA256_PREFIX_AND_64_HEX_DIGITS", "REPLACE_WITH_APPROVED_LOCAL_IMAGE_SHA256_ID", blankApproval{"UNAPPROVED", "UNAPPROVED", "REPLACE_WITH_REVIEW_EVIDENCE_SHA256", "1970-01-01T00:00:00Z"}},
 	}
@@ -201,6 +205,11 @@ func readMetadata(path, version string) (metadata, error) {
 	if m.Version != version || !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(m.Revision) || !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(m.SourceTreeSHA256) || !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(m.SandboxSHA256) || (m.SourceState != "clean" && m.SourceState != "modified") || !regexp.MustCompile(`^go[0-9]+\.[0-9]+\.[0-9]+$`).MatchString(m.GoVersion) {
 		return m, errors.New("invalid or inconsistent private build identity")
 	}
+	for _, hash := range []string{m.ProbeSHA256, m.RecipesSHA256} {
+		if !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(hash) {
+			return m, errors.New("missing probe or recipe identity")
+		}
+	}
 	if _, err := time.Parse(time.RFC3339, m.AsOf); err != nil {
 		return m, err
 	}
@@ -220,6 +229,9 @@ func readMetadata(path, version string) (metadata, error) {
 func validatePrivateBinaries(files map[string][]byte, platform string, m metadata) error {
 	if m.SandboxSHA256 != digest(files["pao-sandbox-linux-amd64"]) {
 		return errors.New("bundled sandbox identity mismatch")
+	}
+	if m.ProbeSHA256 != digest(files["pao-probe-linux-amd64"]) || m.RecipesSHA256 != digest(files["recipes/manifest.json"]) {
+		return errors.New("bundled preparation identity mismatch")
 	}
 	if m.PaoSHA256[platform] != digest(files[cliName(platform)]) {
 		return errors.New("bundled CLI identity mismatch")
@@ -308,7 +320,7 @@ func pack(stage, path, platform, version, metadataPath string) error {
 		writer := tar.NewWriter(compressed)
 		for _, name := range names {
 			mode := int64(0644)
-			if name == "pao" || name == "pao-sandbox-linux-amd64" {
+			if name == "pao" || name == "pao-sandbox-linux-amd64" || name == "pao-probe-linux-amd64" {
 				mode = 0755
 			}
 			if err := writer.WriteHeader(&tar.Header{Name: name, Mode: mode, Size: int64(len(files[name])), ModTime: asOf, Typeflag: tar.TypeReg, Format: tar.FormatUSTAR}); err != nil {
@@ -429,7 +441,7 @@ func verifyWithMetadata(path, platform, version, metadataPath string) error {
 			if entry.Typeflag != tar.TypeReg || entry.Linkname != "" || len(entry.PAXRecords) != 0 {
 				return errors.New("non-regular tar entry")
 			}
-			if (entry.Name == "pao" || entry.Name == "pao-sandbox-linux-amd64") && entry.Mode != 0755 {
+			if (entry.Name == "pao" || entry.Name == "pao-sandbox-linux-amd64" || entry.Name == "pao-probe-linux-amd64") && entry.Mode != 0755 {
 				return errors.New("Linux binary lacks exact executable mode")
 			}
 			if err := read(entry.Name, reader, entry.Size); err != nil {

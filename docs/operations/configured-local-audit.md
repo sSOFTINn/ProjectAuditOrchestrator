@@ -2,23 +2,23 @@
 
 `pao audit --config FILE --profile NAME` використовує приватний JSON і завжди
 відкриває preview. `--execute` додатково вимагає точне підтвердження поточного
-плану. Це поточний контракт кандидата v0.2; датовані інструкції старих локальних
+плану. Це поточний контракт кандидата v0.3; датовані інструкції старих локальних
 пакетів є історичними. Почніть із [посібника пакета](../public-start.uk.md)
-і [меж публічного кандидата](../release/v0.2-public-scope.md).
+і [меж публічного кандидата](../release/v0.3-public-scope.md).
 
 Для першої інсталяції оберіть **`secrets` із Gitleaks 8.30.1 Linux AMD64**.
 Один і той самий Linux scanner працює всередині VM на Windows та Ubuntu;
-host executable PAO обирається окремо під ОС. У посібнику пакета є порядок
-перевірки upstream-архіву, підготовки Docker runtime, hashes та три повні
-JSON-приклади для синтетичної цілі. Цей профіль потребує одного запису catalog
+host executable PAO обирається окремо під ОС. `setup --root PATH --profile secrets`
+показує план, а `--apply` готує ресурси після підтвердження, виконує синтетичні
+проби та створює конфігурацію після окремого рішення власника. Цей профіль потребує одного запису catalog
 і `base` provider, без DB, prepared state та rule pack. Профіль `mvp` вимагає
 окремої підготовки інших інструментів.
 
 ## Приватна конфігурація
 
-Для публічного пакета використовуйте `pao.dev/local-audit-config/v2`.
-Скопіюйте його blank `audit.json`, `toolchain.catalog.json` і
-`docker-provider.json` у власну приватну папку. Значення `UNAPPROVED`,
+Для виконання використовуйте `pao.dev/local-audit-config/v3`, створену setup.
+`--import-config` переносить метадані v1/v2 у новий файл, зберігаючи оригінал;
+старі погодження не стають новими автоматично. Значення `UNAPPROVED`,
 `REPLACE_...`, порожні required paths і прострочені дати навмисно не дають запуску.
 
 `--config` приймає абсолютний шлях або лише коротке ім'я файла. Коротке ім'я
@@ -27,7 +27,7 @@ JSON-приклади для синтетичної цілі. Цей профі�
 `$HOME/.config/PAO/config`. Немає пошуку в target, поточній папці чи Git;
 довільний відносний шлях із каталогами відхиляється.
 
-У v2 задайте абсолютні `target`, `evidence_base`, `report_base`,
+У v3 потрібні абсолютні `installation_state`, `target`, `evidence_base`, `report_base`,
 `toolchain_root`, `manifest_root` і `toolchain_catalog`. `manifest_root`
 вказує на `adapters` цього пакета. Provider JSON потрібний лише для вибраного
 профілем runtime; `rule_pack_root` — для адаптерів із rules. Windows JSON
@@ -44,6 +44,10 @@ permission або виконання target code.
 Власник окремо перевіряє точні bytes/version/license/freshness інструментів,
 образів, баз, стану й правил. Catalog approval діє максимум 90 днів і не
 подовжує строки окремих prerequisites. Hash сам по собі не є схваленням.
+`installation_state` спільний для всіх конфігурацій установки; pending-запис
+контейнера переживає перезапуск і потребує `recover` з точним ID.
+`doctor --config FILE --profile NAME --json` читає передумови без scanner execution.
+Приватний `run-summary.json` окремо фіксує виконання, розгляд, покриття та шляхи.
 Оновлення Docker CLI чи образу потребує нового точного provider review,
 а зміна конфігурації/catalog/provider потребує нового preview та RUN.
 
@@ -243,8 +247,10 @@ configured команди.
 ## Зберігання й ручні зміни
 
 Config v1 лишається тільки для historical local compatibility; fixed old catalog
-не є переносним approval. PAO нічого не встановлює, не поновлює approval,
-не завантажує/оновлює DB, не має telemetry чи automatic updater.
+не є переносним approval. Команда `audit` нічого не встановлює, не поновлює
+approval і не завантажує/оновлює DB. Окремий підтверджений `setup --apply`
+готує публічні залежності онлайн; погодження завершених байтів залишається
+окремим рішенням власника. PAO не має telemetry чи automatic updater.
 
 Private raw evidence може містити secrets/PII; portable output теж перегляньте
 перед передаванням. Оновлюйте програму через окремий перевірений пакет, зберігайте
