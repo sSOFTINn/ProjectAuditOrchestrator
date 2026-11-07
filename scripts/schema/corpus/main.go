@@ -183,6 +183,10 @@ func run() error {
 	if err := writeValue("doctor-unavailable", "doctor-v1", diagnosis); err != nil {
 		return err
 	}
+	diagnosis.Checks = []doctor.Check{{ID: "installation.journal", Status: "SETUP_REQUIRED", Reason: "Synthetic pending lifecycle", NextAction: "pao recover --config FILE --run " + strings.Repeat("a", 32), PendingRunIDs: []string{strings.Repeat("a", 32), strings.Repeat("b", 32)}}}
+	if err := writeValue("doctor-pending", "doctor-v1", diagnosis); err != nil {
+		return err
+	}
 	provider := runner.DockerProviderConfig{APIVersion: runner.DockerProviderConfigVersion, DockerPath: "/synthetic/bin/docker", DockerSHA256: digest, RuntimeImage: digest, RuntimeApproval: runner.RuntimeApproval{ID: "SYNTHETIC-NOT-APPROVAL", Owner: "synthetic-corpus", EvidenceDigest: digest, ExpiresAt: stamp.AddDate(0, 1, 0)}}
 	if err := writeValue("docker-provider", "docker-provider-v1alpha1", provider); err != nil {
 		return err

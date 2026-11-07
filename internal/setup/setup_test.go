@@ -122,10 +122,10 @@ func TestPackageRecipeTamperingFailsBeforeWrites(t *testing.T) {
 
 func TestConfirmationRequiresExactDigestAndOwner(t *testing.T) {
 	var out bytes.Buffer
-	if confirm(newReader("yes\n"), &out, "PREPARE sha256:abc") {
+	if confirm(context.Background(), newReader("yes\n"), &out, "PREPARE sha256:abc") {
 		t.Fatal("generic yes granted scoped preparation")
 	}
-	if !confirm(newReader("APPROVE sha256:abc AS Alice\n"), &out, "APPROVE sha256:abc AS Alice") {
+	if !confirm(context.Background(), newReader("APPROVE sha256:abc AS Alice\n"), &out, "APPROVE sha256:abc AS Alice") {
 		t.Fatal("exact approval refused")
 	}
 	for _, owner := range []string{"", "UNAPPROVED", "UNKNOWN", "x\ny", "REPLACE_NAME"} {

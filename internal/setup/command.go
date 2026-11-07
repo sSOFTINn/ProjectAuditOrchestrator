@@ -15,6 +15,7 @@ import (
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/buildinfo"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/prompt"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
 )
 
@@ -142,7 +143,11 @@ func Command(ctx context.Context, args []string, in io.Reader, out, errOut io.Wr
 	input := bufio.NewReader(io.LimitReader(in, 64<<10))
 	if o.target == "" {
 		fmt.Fprint(out, "Local project path for the audit (contents are not read during setup):\n> ")
-		line, _ := input.ReadString('\n')
+		line, err := prompt.Line(ctx, input)
+		if err != nil && !errors.Is(err, io.EOF) {
+			fmt.Fprintln(errOut, "Setup input cancelled or unavailable; no preparation started.")
+			return 2
+		}
 		o.target = strings.TrimSpace(line)
 	}
 	if e := validateTargetPlacement(o.target, o.root, o.packageRoot); e != nil {
@@ -175,10 +180,14 @@ func Command(ctx context.Context, args []string, in io.Reader, out, errOut io.Wr
 			fmt.Fprintln(errOut, "confirmation digest differs from this plan")
 			return 2
 		}
-		if !confirm(input, out, "PREPARE "+p.Digest) {
+		if !confirm(ctx, input, out, "PREPARE "+p.Digest) {
 			fmt.Fprintln(errOut, "No preparation confirmation; no installation changes made.")
 			return 2
 		}
+	}
+	if ctx.Err() != nil {
+		fmt.Fprintln(errOut, "Setup cancelled; no preparation started.")
+		return 2
 	}
 	var installed preparedInstallation
 	if o.verify {
@@ -217,7 +226,11 @@ func Command(ctx context.Context, args []string, in io.Reader, out, errOut io.Wr
 	}
 	if o.owner == "" {
 		fmt.Fprint(out, "Operator name for the review (blank leaves drafts unapproved):\n> ")
-		line, _ := input.ReadString('\n')
+		line, err := prompt.Line(ctx, input)
+		if err != nil && !errors.Is(err, io.EOF) {
+			fmt.Fprintln(errOut, "Setup input cancelled or unavailable; prepared evidence retained without approval.")
+			return 2
+		}
 		o.owner = strings.TrimSpace(line)
 	}
 	// Neither a name nor --confirm-plan grants approval of bytes that have not
@@ -226,7 +239,11 @@ func Command(ctx context.Context, args []string, in io.Reader, out, errOut io.Wr
 	approved := false
 	if validOwner(o.owner) {
 		fmt.Fprintf(out, "Review the prepared tools, licenses, public database scope and verification above. Approval expires in 30 days.\n")
-		approved = confirm(input, out, "APPROVE "+approvalDigest+" AS "+o.owner)
+		approved = confirm(ctx, input, out, "APPROVE "+approvalDigest+" AS "+o.owner)
+	}
+	if ctx.Err() != nil {
+		fmt.Fprintln(errOut, "Setup cancelled; prepared evidence retained without approval.")
+		return 2
 	}
 	config, e := writeConfiguration(o, installed, result, imported, approved)
 	if e != nil {
@@ -258,9 +275,9 @@ func validOwner(s string) bool {
 	v := strings.ToUpper(strings.TrimSpace(s))
 	return v != "" && v != "UNAPPROVED" && v != "UNKNOWN" && v != "PENDING" && !strings.HasPrefix(v, "REPLACE_") && !strings.ContainsAny(s, "\x00\r\n")
 }
-func confirm(in *bufio.Reader, out io.Writer, phrase string) bool {
+func confirm(ctx context.Context, in *bufio.Reader, out io.Writer, phrase string) bool {
 	fmt.Fprintf(out, "Type exactly: %s\n> ", phrase)
-	s, e := in.ReadString('\n')
+	s, e := prompt.Line(ctx, in)
 	return (e == nil || errors.Is(e, io.EOF)) && strings.TrimSpace(s) == phrase
 }
 func verify(ctx context.Context, o options, p preparedInstallation) (runner.PreparationResult, error) {

@@ -26,8 +26,15 @@
           "id": {"type": "string", "minLength": 1, "maxLength": 128},
           "status": {"enum": ["READY", "SETUP_REQUIRED"]},
           "reason": {"type": "string", "minLength": 1},
-          "next_action": {"type": "string", "minLength": 1}
-        }
+          "next_action": {"type": "string", "minLength": 1},
+          "pending_run_ids": {
+            "type": "array", "minItems": 1, "maxItems": 100000, "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[a-f0-9]{32}$"}
+          }
+        },
+        "allOf": [
+          {"if": {"required": ["pending_run_ids"]}, "then": {"properties": {"id": {"const": "installation.journal"}, "status": {"const": "SETUP_REQUIRED"}}}}
+        ]
       }
     }
   },

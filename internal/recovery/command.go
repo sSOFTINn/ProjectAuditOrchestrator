@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/prompt"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
 )
 
@@ -77,7 +78,7 @@ func command(ctx context.Context, args []string, input io.Reader, output, errout
 		fmt.Fprintf(output, "Run %s; recorded state %s; container present=%t. Only this verified PAO container may be removed; evidence is retained.\n", *run, preview.Status, preview.ContainerPresent)
 		phrase := "RECOVER " + *run
 		fmt.Fprintf(output, "Confirm: %s\n> ", phrase)
-		line, err := bufio.NewReader(io.LimitReader(input, 256)).ReadString('\n')
+		line, err := prompt.Line(ctx, bufio.NewReader(io.LimitReader(input, 256)))
 		if err != nil || line != phrase+"\n" && line != phrase+"\r\n" {
 			fmt.Fprintln(errout, "RECOVERY_NOT_CONFIRMED")
 			return 5

@@ -66,7 +66,7 @@ func fixture(t *testing.T) (string, auditconfig.Config, dependencies) {
 	write(t, supervisor, []byte("synthetic supervisor, never executed"))
 	d := dependencies{now: func() time.Time { return now }, producer: func() (buildinfo.Producer, error) { return syntheticProducer(), nil }, runtime: func(context.Context, runner.DockerProviderConfig, string) (runner.SandboxProperties, error) {
 		return runner.SandboxProperties{}, nil
-	}, stateReady: func(string) error { return nil }, privatePath: func(path string, directory bool) error {
+	}, pendingRuns: func(context.Context, string) ([]string, error) { return nil, nil }, privatePath: func(path string, directory bool) error {
 		info, err := os.Stat(path)
 		if err != nil {
 			return err
@@ -159,7 +159,7 @@ func TestReadinessRejectsEnvironmentOutsideAdapterContract(t *testing.T) {
 func TestReadinessDriftAndPendingRecoveryPreventReady(t *testing.T) {
 	path, c, d := fixture(t)
 	write(t, filepath.Join(c.ToolchainRoot, "gitleaks"), []byte("changed scanner"))
-	d.stateReady = func(string) error { return errors.New("pending container") }
+	d.pendingRuns = func(context.Context, string) ([]string, error) { return nil, errors.New("pending container") }
 	d.runtime = func(context.Context, runner.DockerProviderConfig, string) (runner.SandboxProperties, error) {
 		t.Fatal("runtime must not be probed with unresolved state")
 		return runner.SandboxProperties{}, nil

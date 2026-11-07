@@ -29,10 +29,11 @@ import (
 const Version = "pao.dev/doctor/v1"
 
 type Check struct {
-	ID         string `json:"id"`
-	Status     string `json:"status"`
-	Reason     string `json:"reason"`
-	NextAction string `json:"next_action,omitempty"`
+	ID            string   `json:"id"`
+	Status        string   `json:"status"`
+	Reason        string   `json:"reason"`
+	NextAction    string   `json:"next_action,omitempty"`
+	PendingRunIDs []string `json:"pending_run_ids,omitempty"`
 }
 
 // Result describes profile prerequisites, not target applicability or a verdict.
@@ -55,7 +56,7 @@ type dependencies struct {
 	now         func() time.Time
 	producer    func() (buildinfo.Producer, error)
 	runtime     func(context.Context, runner.DockerProviderConfig, string) (runner.SandboxProperties, error)
-	stateReady  func(string) error
+	pendingRuns func(context.Context, string) ([]string, error)
 	privatePath func(string, bool) error
 	platform    func() error
 	supervisor  string
@@ -66,7 +67,7 @@ func defaults() dependencies {
 	executable, _ := os.Executable()
 	return dependencies{
 		now: time.Now, producer: buildinfo.Current, runtime: runner.CheckPreparedRuntime,
-		stateReady: installation.CheckReady, privatePath: installation.ValidatePrivatePath,
+		pendingRuns: pendingRunIDs, privatePath: installation.ValidatePrivatePath,
 		platform:   supportedHost,
 		supervisor: filepath.Join(filepath.Dir(executable), "pao-sandbox-linux-amd64"), superHash: buildinfo.SandboxSHA256,
 	}
@@ -109,6 +110,9 @@ func Command(ctx context.Context, args []string, output, errout io.Writer) int {
 		fmt.Fprintf(output, "%s: готовність середовища для %s; ціль і сканери не запускалися.\n", result.Status, result.Profile)
 		for _, check := range result.Checks {
 			fmt.Fprintf(output, "[%s] %s: %s\n", check.Status, check.ID, check.Reason)
+			if len(check.PendingRunIDs) != 0 {
+				fmt.Fprintf(output, "  Ідентифікатори незавершених запусків: %s\n", strings.Join(check.PendingRunIDs, ", "))
+			}
 			if check.NextAction != "" {
 				fmt.Fprintf(output, "  %s\n", check.NextAction)
 			}
@@ -199,7 +203,20 @@ func inspect(ctx context.Context, configPath, profile string, d dependencies) (r
 	if unsafeInputs {
 		return
 	}
-	stateReady := add("installation.journal", d.stateReady(c.InstallationState), "Незавершених запусків немає.", "Стан установки недоступний або є незавершений запуск.", "Перевірте pao recover --config FILE --run ID; докази не видаляйте.")
+	pending, stateErr := d.pendingRuns(ctx, c.InstallationState)
+	if stateErr == nil && len(pending) != 0 {
+		stateErr = errors.New("pending installation lifecycle")
+	} else if stateErr != nil {
+		// A failed inventory may contain incomplete or untrusted data. Never
+		// reflect its IDs or raw error (which can contain private paths).
+		pending = nil
+	}
+	stateReady := add("installation.journal", stateErr, "Незавершених запусків немає.", "Стан установки недоступний або є незавершений запуск.", "Перевірте pao recover --config FILE --run ID; докази не видаляйте.")
+	if len(pending) != 0 {
+		check := &result.Checks[len(result.Checks)-1]
+		check.PendingRunIDs = pending
+		check.NextAction = "Перегляньте pao recover --config FILE --run " + pending[0] + "; після відновлення повторіть doctor. Докази не видаляйте."
+	}
 	catalog, err := toolchain.LoadCatalog(c.ToolchainCatalog, now)
 	if !add("catalog.approval", err, "Каталог має чинне погодження.", "Каталог відсутній, некоректний або погодження прострочене.", "Підготуйте актуальні ресурси й погодьте їх через setup; не пересувайте дати вручну.") {
 		return

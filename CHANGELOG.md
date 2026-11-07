@@ -12,6 +12,8 @@
   survives PAO restarts and refuses foreign or ambiguously identified containers.
 - Add read-only profile readiness diagnostics. `doctor READY` describes local
   prerequisites and is not a security verdict or a scanner acceptance result.
+- Show validated pending lifecycle IDs in doctor output and make setup/recovery
+  prompts respond to cancellation without granting approval or applying cleanup.
 - Prepare a verified private Docker CLI generation on Linux while preserving
   installed executable layout and pinning on Windows.
 - Add private `pao.dev/run-summary/v1` with separate execution, review, coverage
