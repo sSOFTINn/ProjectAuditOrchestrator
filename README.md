@@ -7,10 +7,10 @@ legal verdict.
 
 ## Scope
 
-This source builds on the bounded `v0.2.0` scope, with local unreleased changes
-listed in the [changelog](CHANGELOG.md). An unreleased candidate is not a signed
-or approved release.
-The [current scope](docs/release/v0.2-public-scope.md) records implementation,
+Version `v0.3.0` adds setup and recovery to the bounded `v0.2.0` scope, with changes
+listed in the [changelog](CHANGELOG.md). Verify the matching signed tag and release
+archives before treating a source checkout or local build as an approved release.
+The [v0.3 scope](docs/release/v0.3-public-scope.md) records implementation,
 support boundaries and verification requirements. Internal planning, review and
 acceptance records are retained separately from the public source.
 
@@ -89,11 +89,19 @@ account. PAO runs no target package manager, build/test script or Git subprocess
 Read the [Ukrainian beginner guide](docs/public-start.uk.md) and
 [verify the exact archive and signed tag](docs/release-verification.md).
 Both Windows AMD64 ZIP and Linux AMD64 tar.gz contain the host PAO executable,
-its own `pao-sandbox-linux-amd64` helper, ten manifests, blank JSON templates,
-version/content manifests and license notices. They contain no scanners, runtime
-images, databases, rule packs, Python wheels or cached schemas.
+its own `pao-sandbox-linux-amd64` helper and `pao-probe-linux-amd64` synthetic
+probe, ten manifests, pinned setup recipes with PAO-authored sample rules,
+blank JSON templates, version/content manifests and license notices. They contain
+no external scanners, runtime images, databases, Python wheels or cached schemas.
 
-The `UNAPPROVED`/empty templates require real local setup and review. Use
+Run `pao setup --root PATH --profile secrets` to preview preparation without
+writes or network access. Add `--apply` for explicitly confirmed public downloads,
+runtime preparation, fixed synthetic verification and generated v3 configuration.
+Setup never sends target contents and requires a separate final operator approval.
+No Go toolchain, source checkout or manual JSON editing is needed for this flow.
+`pao doctor --config FILE --profile mvp --json` checks all profile prerequisites
+without running scanners. Durable installation journals and exact `pao recover`
+operations handle interrupted containers across restarts. Use
 `pao audit --config FILE --profile NAME` for preview; `--execute` additionally
 requests the current exact confirmation. See the
 [operator guide](docs/operations/configured-local-audit.md) for private config
@@ -110,18 +118,18 @@ the maintainer must verify availability before public release. See [SECURITY.md]
 ## Source and release boundaries
 
 The canonical module identity is
-`github.com/sSOFTINn/ProjectAuditOrchestrator`, with exact Go 1.27.1 builds.
+`github.com/sSOFTINn/ProjectAuditOrchestrator`, with exact Go 1.27.3 builds.
 No `go install` availability is promised before reviewed source publication.
 CLI/config/report versions are public contracts; support applies to verified
 published releases. Wider APIs, policy automation and
 roadmap capabilities remain separately scoped.
 
-- [Current product scope](docs/release/v0.2-public-scope.md)
+- [Current product scope](docs/release/v0.3-public-scope.md)
 - [Threat model](docs/security/threat-model.md)
 - [Toolchain register](docs/legal/toolchain-register.md)
 - [Audit-storage policy](docs/operations/audit-storage.md)
 
-PAO-authored code/docs use [Apache-2.0](LICENSE). Both owned executables include
+PAO-authored code/docs use [Apache-2.0](LICENSE). All three owned executables include
 Go runtime/stdlib under the exact included Go license. Source-only cached
 schemas and validator wheels retain separate terms; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [NOTICE](NOTICE).

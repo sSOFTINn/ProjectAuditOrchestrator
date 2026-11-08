@@ -63,7 +63,7 @@ try {
     $state = if ($dirty.Count) { 'modified' } else { 'clean' }
     $sourceDigest = Get-SourceIdentity
     $goVersion = (& $go env GOVERSION).Trim()
-    if ($LASTEXITCODE -ne 0 -or $goVersion -cne 'go1.27.1') { throw 'The exact Go 1.27.1 reference toolchain is required; no download is attempted.' }
+    if ($LASTEXITCODE -ne 0 -or $goVersion -cne 'go1.27.3') { throw 'The exact Go 1.27.3 reference toolchain is required; no download is attempted.' }
     $goRoot = (& $go env GOROOT).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Cannot locate the Go license.' }
     [IO.Directory]::CreateDirectory($output) | Out-Null
@@ -76,8 +76,13 @@ try {
     & $go build -trimpath -buildvcs=false -o $sandbox ./cmd/pao-sandbox
     if ($LASTEXITCODE -ne 0) { throw 'PAO sandbox supervisor build failed.' }
     $sandboxHash = (Get-FileHash -LiteralPath $sandbox -Algorithm SHA256).Hash.ToLowerInvariant()
+    $probe = Join-Path $work 'pao-probe-linux-amd64'
+    & $go build -trimpath -buildvcs=false -o $probe ./cmd/pao-probe
+    if ($LASTEXITCODE -ne 0) { throw 'PAO preparation probe build failed.' }
+    $probeHash = (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash.ToLowerInvariant()
+    $recipesHash = (Get-FileHash -LiteralPath (Join-Path $root 'tools/public-package/recipes/manifest.json') -Algorithm SHA256).Hash.ToLowerInvariant()
     $env:GOOS=''; $env:GOARCH=''
-    $metadata = [ordered]@{ version=$Version; revision=$revision; source_state=$state; source_tree_sha256=$sourceDigest; sandbox_sha256=$sandboxHash; go_version=$goVersion; as_of=$AsOf.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'); pao_sha256=[ordered]@{}; archives_sha256=[ordered]@{} }
+    $metadata = [ordered]@{ version=$Version; revision=$revision; source_state=$state; source_tree_sha256=$sourceDigest; sandbox_sha256=$sandboxHash; probe_sha256=$probeHash; recipes_sha256=$recipesHash; go_version=$goVersion; as_of=$AsOf.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'); pao_sha256=[ordered]@{}; archives_sha256=[ordered]@{} }
     $helper = Join-Path $work $(if ($IsWindows) { 'package-verifier.exe' } else { 'package-verifier' })
     & $go build -trimpath -buildvcs=false -o $helper ./scripts/release/package
     if ($LASTEXITCODE -ne 0) { throw 'Package verifier build failed.' }
@@ -88,10 +93,11 @@ try {
         $env:GOOS = $platform; $env:GOARCH = 'amd64'
         $binary = if ($platform -eq 'windows') { 'pao.exe' } else { 'pao' }
         $prefix = 'github.com/sSOFTINn/ProjectAuditOrchestrator/internal/buildinfo'
-        & $go build -trimpath -buildvcs=false -ldflags "-X $prefix.Version=$Version -X $prefix.Revision=$revision -X $prefix.SourceState=$state -X $prefix.SourceTreeSHA256=sha256:$sourceDigest -X $prefix.SandboxSHA256=sha256:$sandboxHash" -o (Join-Path $stage $binary) ./cmd/pao
+        & $go build -trimpath -buildvcs=false -ldflags "-X $prefix.Version=$Version -X $prefix.Revision=$revision -X $prefix.SourceState=$state -X $prefix.SourceTreeSHA256=sha256:$sourceDigest -X $prefix.SandboxSHA256=sha256:$sandboxHash -X $prefix.ProbeSHA256=sha256:$probeHash -X $prefix.RecipesSHA256=sha256:$recipesHash" -o (Join-Path $stage $binary) ./cmd/pao
         if ($LASTEXITCODE -ne 0) { throw "$platform build failed." }
         $metadata.pao_sha256[$platform] = (Get-FileHash -LiteralPath (Join-Path $stage $binary) -Algorithm SHA256).Hash.ToLowerInvariant()
         [IO.File]::Copy($sandbox, (Join-Path $stage 'pao-sandbox-linux-amd64'), $false)
+        [IO.File]::Copy($probe, (Join-Path $stage 'pao-probe-linux-amd64'), $false)
         $inputs = [ordered]@{
             'audit.json'='tools/public-package/templates/audit.json'
             'toolchain.catalog.json'='tools/public-package/templates/toolchain.catalog.json'
@@ -100,6 +106,9 @@ try {
             'LICENSE'='LICENSE'; 'NOTICE'='NOTICE'
         }
         foreach ($id in $ids) { $inputs["adapters/$id/manifest.json"] = "adapters/$id/manifest.json" }
+        foreach ($recipe in @('manifest.json','runtime.Dockerfile','prepare-state.py','opengrep/pao-baseline-v1/LICENSE','opengrep/pao-baseline-v1/README.md','opengrep/pao-baseline-v1/rules.yml','opengrep/pao-baseline-v1/pao-input-manifest.json')) {
+            $inputs["recipes/$recipe"] = "tools/public-package/recipes/$recipe"
+        }
         foreach ($name in $inputs.Keys) {
             $source = Join-Path $root $inputs[$name]
             $entry = Get-Item -LiteralPath $source -Force

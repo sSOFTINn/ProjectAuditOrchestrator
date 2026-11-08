@@ -14,6 +14,7 @@ func (h DockerHost) prepareExecution(ctx context.Context, spec ExecutionSpec) (I
 		return h, func() error { return nil }, nil
 	}
 	var cleanups []func() error
+	h.recoveryDockerPath = h.DockerPath
 	cleanup := func() error {
 		var err error
 		for index := len(cleanups) - 1; index >= 0; index-- {

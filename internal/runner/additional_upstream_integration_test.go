@@ -34,7 +34,7 @@ func TestAdditionalUpstreamZizmorThroughHostRunner(t *testing.T)   { additionalU
 func TestAdditionalUpstreamREUSEThroughHostRunner(t *testing.T)    { additionalUpstream(t, "reuse") }
 
 var additionalUpstreamPins = map[string]struct{ version, sha256 string }{
-	"syft":        {"1.51.1", "abca2def61de9952fa06d3977bb1e064818facb9badfce502b450d3d6846a91f"},
+	"syft":        {"1.57.0", "103469021520fc36c94fe5d2139bb45506f520a8043c61b8dcb161053933ba9e"},
 	"grype":       {"0.118.0", "91705979c6ccb736b87e3250831f5e1a35f13767fd2032ffa85c55b1e6f58f90"},
 	"osv-scanner": {"2.5.1", "f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be"},
 	"trivy":       {"0.74.0", "d89bcc6510a267f11b773398cbf1be5520ce39f9e8b6633178c4487f05b7d791"},
@@ -367,7 +367,7 @@ func additionalAssertNative(t *testing.T, id string, value any) {
 	m := additionalObject(t, value)
 	switch id {
 	case "syft":
-		if additionalText(additionalObject(t, m["schema"])["version"]) != "16.1.10" || additionalText(additionalObject(t, m["descriptor"])["version"]) != additionalUpstreamPins[id].version {
+		if additionalText(additionalObject(t, m["schema"])["version"]) != "16.1.13" || additionalText(additionalObject(t, m["descriptor"])["version"]) != additionalUpstreamPins[id].version {
 			t.Fatal("Syft native schema or producer version does not match the pinned contract")
 		}
 		for _, item := range additionalArray(t, m["artifacts"]) {

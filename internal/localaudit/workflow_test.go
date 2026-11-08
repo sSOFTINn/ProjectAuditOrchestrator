@@ -17,6 +17,7 @@ import (
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/artifact"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditresult"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/installation"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/plan"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/toolchain"
@@ -41,11 +42,14 @@ func TestConsoleDoesNotPrintPrivateExecutionErrors(t *testing.T) {
 func setup(t *testing.T) (auditconfig.Config, string) {
 	t.Helper()
 	root := t.TempDir()
-	c := auditconfig.Config{Version: auditconfig.Version, Target: filepath.Join(root, "demo"), EvidenceBase: filepath.Join(root, "evidence"), ReportBase: filepath.Join(root, "reports"), ToolchainRoot: filepath.Join(root, "tools"), RulePackRoot: filepath.Join(root, "rules"), ManifestRoot: filepath.Join(root, "manifests"), DockerBaseProvider: filepath.Join(root, "config", "base.json"), DockerScanCodeProvider: filepath.Join(root, "config", "scancode.json")}
+	c := auditconfig.Config{Version: auditconfig.InstallationVersion, Target: filepath.Join(root, "demo"), EvidenceBase: filepath.Join(root, "evidence"), ReportBase: filepath.Join(root, "reports"), ToolchainRoot: filepath.Join(root, "tools"), RulePackRoot: filepath.Join(root, "rules"), ManifestRoot: filepath.Join(root, "manifests"), DockerBaseProvider: filepath.Join(root, "config", "base.json"), DockerScanCodeProvider: filepath.Join(root, "config", "scancode.json"), ToolchainCatalog: filepath.Join(root, "config", "catalog.json"), InstallationState: filepath.Join(root, "installation")}
 	for _, p := range []string{c.Target, c.ToolchainRoot, c.RulePackRoot, c.ManifestRoot, filepath.Join(root, "config")} {
 		if err := os.Mkdir(p, 0700); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if _, err := installation.Initialize(c.InstallationState); err != nil {
+		t.Fatal(err)
 	}
 	abs, _ := filepath.Abs(filepath.Join("..", "..", "adapters"))
 	manifests, err := loadManifests(abs)
@@ -81,6 +85,16 @@ func setup(t *testing.T) (auditconfig.Config, string) {
 			t.Fatal(err)
 		}
 	}
+	// Most workflow tests model the nine scanner contracts. sbomqs remains an
+	// explicit additional catalog approval in the quality-chain tests below.
+	ids := []string{}
+	for _, id := range profiles["mvp"] {
+		if id != "sbomqs" {
+			ids = append(ids, id)
+		}
+	}
+	catalog := portableCatalogFixture(t, &c, ids)
+	writeJSONTest(t, c.ToolchainCatalog, catalog)
 	data, _ := json.Marshal(c)
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		t.Fatal(err)
@@ -126,6 +140,10 @@ func (c *confirmationInput) Read(p []byte) (int, error) {
 func sentinel(t *testing.T, calls *[]string) scannerExecutor {
 	return func(ctx context.Context, h runner.HostRunner, s runner.ExecutionSpec, m adapter.Manifest, pd, cd, id, cap string) (runner.ToolExecution, error) {
 		*calls = append(*calls, s.AdapterID)
+		host, ok := h.Host.(runner.DockerHost)
+		if !ok || host.InstallationState == "" || host.AuditID == "" || !strings.HasPrefix(id, host.AuditID+"-") {
+			t.Fatal("installation and audit identity not propagated to host")
+		}
 		if err := s.Validate(); err != nil {
 			t.Fatal(err)
 		}
@@ -336,7 +354,7 @@ func TestConfirmedRunHasIndependentEvidenceAndPortableSummary(t *testing.T) {
 		t.Fatalf("runs: %v %v", runs, err)
 	}
 	for _, run := range runs {
-		for _, file := range []string{"confirmation.json", "config.operator.json", "plan.lock.json", "run-record.json"} {
+		for _, file := range []string{"confirmation.json", "config.operator.json", "plan.lock.json", "run-record.json", "run-summary.json"} {
 			if _, err := os.Stat(filepath.Join(run, file)); err != nil {
 				t.Fatal(err)
 			}
@@ -445,8 +463,8 @@ func TestAllDeclaredExecutionsWithSyntheticRawEvidence(t *testing.T) {
 	executor := func(ctx context.Context, h runner.HostRunner, s runner.ExecutionSpec, m adapter.Manifest, pd, cd, id, cap string) (runner.ToolExecution, error) {
 		calls = append(calls, s.AdapterID)
 		if s.AdapterID == "osv-scanner" {
-			if filepath.Base(s.DatabasePath) != "2026-09-03-readable-v1" || s.DatabaseDigest != "sha256:7972609e63c4e6b3d1c5bfc61bff788e6161999bf4eea7b34dfde76171894d17" {
-				t.Fatal("OSV copy must preserve the approved data identity")
+			if s.DatabasePath != filepath.Join(c.ToolchainRoot, "portable", "osv-scanner", "database") {
+				t.Fatal("OSV must use the explicitly reviewed catalog database")
 			}
 			if err := h.Registry.VerifyDatabase(s.ToolID, s.DatabaseDigest, s.Environment); err != nil {
 				t.Fatal(err)
@@ -562,11 +580,7 @@ func TestConfiguredCommandNormalizesNativeEvidenceAndNeverOverwritesReports(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry, _, err := buildRegistry(c.ToolchainRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := writeUnifiedReports(filepath.Dir(runs[0]), filepath.Dir(filepath.Dir(reports[0])), p.plan, record, nil, registry); err == nil {
+	if _, err := writeUnifiedReports(filepath.Dir(runs[0]), filepath.Dir(filepath.Dir(reports[0])), p.plan, record, nil, p.registry); err == nil {
 		t.Fatal("overwrote report")
 	}
 	rawAfter, err := os.ReadFile(rawPath)
@@ -592,10 +606,20 @@ func TestApprovedSBOMQSCandidateUsesOnlyCapturedCycloneDX(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256([]byte("synthetic sbomqs"))
-	metadata := `{"api_version":"pao.dev/owner-tool-record/v1","id":"sbomqs","version":"synthetic-1","sha256":"` + hex.EncodeToString(sum[:]) + `","source_license":"Apache-2.0","redistribution":"user-installed-only","binary":"bin/sbomqs","platform":"linux-amd64","owner":"test","approved_at":"` + time.Now().UTC().Add(-time.Hour).Format(time.RFC3339) + `"}`
-	if err := os.WriteFile(filepath.Join(c.ToolchainRoot, "sbomqs", "approved-tool.json"), []byte(metadata), 0o600); err != nil {
+	metadata, err := os.ReadFile(c.ToolchainCatalog)
+	if err != nil {
 		t.Fatal(err)
 	}
+	var catalog toolchain.Catalog
+	if err := json.Unmarshal(metadata, &catalog); err != nil {
+		t.Fatal(err)
+	}
+	provider, err := runner.LoadDockerProviderConfig(c.DockerBaseProvider, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog.Tools = append(catalog.Tools, toolchain.CatalogTool{Record: toolchain.Record{ID: "sbomqs", Version: "synthetic-1", SHA256: hex.EncodeToString(sum[:]), SourceLicense: "Apache-2.0", Redistribution: "user-installed-only", RuntimeSHA256: provider.RuntimeImage[7:], RuntimeAt: time.Now().UTC()}, Binary: "sbomqs/bin/sbomqs", Provider: "base"})
+	writeJSONTest(t, c.ToolchainCatalog, catalog)
 	p, err := prepare(path, "sbom-quality")
 	if err != nil || p.sbomqs == nil || p.configDigest == c.Digest() {
 		t.Fatalf("approved candidate was not bound to the preview: %#v %v", p.sbomqs, err)

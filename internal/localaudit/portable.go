@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/installation"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/toolchain"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/sdk/adapter"
@@ -16,9 +17,16 @@ import (
 func (p *preparedAudit) prepareToolchain(now time.Time) error {
 	c := p.config
 	p.configDigest = c.Digest()
+	if c.Version == auditconfig.InstallationVersion {
+		state, err := installation.Open(c.InstallationState)
+		if err != nil {
+			return fmt.Errorf("installation state: %w", err)
+		}
+		p.configDigest = auditconfig.Digest([]byte(p.configDigest + "\x00installation:" + state.ID()))
+	}
 	needed := map[string]bool{}
 	var catalogExpiresAt time.Time
-	if c.Version == auditconfig.PortableVersion {
+	if c.UsesCatalog() {
 		catalog, err := toolchain.LoadCatalog(c.ToolchainCatalog, now)
 		if err != nil {
 			return fmt.Errorf("toolchain catalog: %w", err)
@@ -122,8 +130,10 @@ func (p *preparedAudit) prepareToolchain(now time.Time) error {
 		}
 		if kind == "base" {
 			p.baseHost = provider.Host()
+			p.baseHost.InstallationState = c.InstallationState
 		} else {
 			p.scancodeHost = provider.Host()
+			p.scancodeHost.InstallationState = c.InstallationState
 		}
 	}
 	return nil

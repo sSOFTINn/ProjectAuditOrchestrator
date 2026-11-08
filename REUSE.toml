@@ -5,11 +5,22 @@ path = [
     "**/*.md", "**/*.json", "**/*.yaml", "**/*.yml", "**/*.toml", "**/*.go", "**/*.ps1", "**/*.sh", "**/*.py",
     ".dockerignore", ".gitattributes", ".gitignore", "go.mod", "NOTICE",
     "runtime/Dockerfile", "runtime/Dockerfile.data-prep", "runtime/Dockerfile.scancode-synthetic",
-    "scripts/toolchain/go-1.27.0-checksums.txt", "scripts/toolchain/go-1.27.1-checksums.txt",
+    "tools/public-package/recipes/runtime.Dockerfile",
+    "scripts/toolchain/go-1.27.0-checksums.txt", "scripts/toolchain/go-1.27.1-checksums.txt", "scripts/toolchain/go-1.27.3-checksums.txt",
     "testdata/container-vm-fixture/Dockerfile", "testdata/opengrep-baseline/javascript/vulnerable.js",
 ]
 SPDX-FileCopyrightText = "2026 Project Audit Orchestrator contributors"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = [
+    "internal/zstd/bits.go", "internal/zstd/block.go", "internal/zstd/fse.go", "internal/zstd/huff.go",
+    "internal/zstd/literals.go", "internal/zstd/window.go", "internal/zstd/xxhash.go", "internal/zstd/zstd.go",
+    "internal/zstd/LICENSE",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 [[annotations]]
 path = ["schemas/vendor/cyclonedx/bom-1.5.schema.json", "schemas/vendor/cyclonedx/spdx.schema.json", "schemas/vendor/licenses/CycloneDX-LICENSE.txt"]

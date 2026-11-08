@@ -52,6 +52,16 @@ type Requirement struct {
 // prerequisite approvals at execution time.
 const MaximumPrerequisiteAge = 90 * 24 * time.Hour
 
+// DatabaseMaximumAge keeps readiness and launch admission consistent with
+// setup's scanner-specific database limit. Other prerequisites retain the
+// owner's general freshness policy.
+func DatabaseMaximumAge(toolID string) time.Duration {
+	if toolID == "grype" {
+		return 5 * 24 * time.Hour
+	}
+	return MaximumPrerequisiteAge
+}
+
 type Coverage struct {
 	ToolID     string `json:"tool_id"`
 	Capability string `json:"capability"`

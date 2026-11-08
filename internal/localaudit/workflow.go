@@ -18,6 +18,7 @@ import (
 
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditconfig"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/auditresult"
+	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/installation"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/plan"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/runner"
 	"github.com/sSOFTINn/ProjectAuditOrchestrator/internal/target"
@@ -53,15 +54,25 @@ var profiles = map[string][]string{
 	"mvp":          {"syft", "sbomqs", "grype", "osv-scanner", "scancode", "reuse", "trivy", "gitleaks", "opengrep", "zizmor"},
 }
 
+// ProfileTools returns a detached list; diagnostic and setup callers cannot
+// change the host-owned adapter selection used by audit execution.
+func ProfileTools(profile string) ([]string, error) {
+	ids, ok := profiles[profile]
+	if !ok {
+		return nil, errors.New("choose --profile fast, deep-sca, license, secrets, sast, ci-security, sbom-quality or mvp")
+	}
+	return append([]string(nil), ids...), nil
+}
+
 func prepare(configPath, profile string) (preparedAudit, error) {
 	return prepareContext(context.Background(), configPath, profile)
 }
 
 func prepareContext(ctx context.Context, configPath, profile string) (preparedAudit, error) {
 	var p preparedAudit
-	ids, ok := profiles[profile]
-	if !ok {
-		return p, errors.New("choose --profile fast, deep-sca, license, secrets, sast, ci-security, sbom-quality or mvp")
+	ids, err := ProfileTools(profile)
+	if err != nil {
+		return p, err
 	}
 	c, err := auditconfig.Load(configPath)
 	if err != nil {
@@ -142,7 +153,7 @@ func Command(ctx context.Context, args []string, input io.Reader, output, errout
 	})
 }
 
-func command(ctx context.Context, args []string, input io.Reader, output, errout io.Writer, executor scannerExecutor) int {
+func command(ctx context.Context, args []string, input io.Reader, output, errout io.Writer, executor scannerExecutor) (exitCode int) {
 	fail := func(err error) int { fmt.Fprintf(errout, "PAO: %v\n", err); return 3 }
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
 	fs.SetOutput(errout)
@@ -161,6 +172,24 @@ func command(ctx context.Context, args []string, input io.Reader, output, errout
 	configPath, err := auditconfig.Resolve(*configName)
 	if err != nil {
 		return fail(err)
+	}
+	// Refuse legacy execution before reading target contents, prompting or
+	// reserving output. Preview and explicit setup import retain read support.
+	if *execute {
+		config, err := auditconfig.Read(configPath)
+		if err != nil {
+			return fail(err)
+		}
+		if err := config.RequireExecutionVersion(); err != nil {
+			return fail(err)
+		}
+		if err := config.ValidatePaths(configPath); err != nil {
+			return fail(err)
+		}
+		if err := installation.CheckReady(config.InstallationState); err != nil {
+			fmt.Fprintln(errout, "POLICY_BLOCKED: стан установки потребує перевірки або відновлення; запустіть pao doctor чи pao recover.")
+			return 5
+		}
 	}
 	p, err := prepareContext(ctx, configPath, *profile)
 	if err != nil {
@@ -230,10 +259,25 @@ func command(ctx context.Context, args []string, input io.Reader, output, errout
 		fmt.Fprintln(errout, "STALE_PREVIEW: налаштування, проєкт або декларації змінилися; потрібен новий перегляд.")
 		return 5
 	}
+	if err := installation.CheckReady(fresh.config.InstallationState); err != nil {
+		fmt.Fprintln(errout, "POLICY_BLOCKED: стан установки змінився; потрібна перевірка або відновлення.")
+		return 5
+	}
 	if err := reserve(evidence, reportDir); err != nil {
 		return fail(err)
 	}
-	privateConfig, _ := json.MarshalIndent(p.config, "", "  ")
+	summary := newRunSummary(id, *profile, fresh, evidence, reportDir)
+	defer func() {
+		summary.ExitCode = exitCode
+		if err := writeRunSummary(evidence, summary); err != nil {
+			fmt.Fprintln(errout, "PAO: не вдалося зберегти підсумок запуску; наявні докази залишено без змін.")
+			exitCode = 3
+		}
+	}()
+	privateConfig, err := json.MarshalIndent(p.config, "", "  ")
+	if err != nil {
+		return fail(err)
+	}
 	if err := writeOnce(filepath.Join(evidence, "config.operator.json"), privateConfig, 0o600); err != nil {
 		return fail(err)
 	}
@@ -244,14 +288,21 @@ func command(ctx context.Context, args []string, input io.Reader, output, errout
 		TargetID            string   `json:"target_id"`
 		Network             string   `json:"network"`
 		TargetAccess        string   `json:"target_access"`
+		InstallationState   string   `json:"installation_state"`
 		Adapters            []string `json:"adapters"`
-	}{"pao.dev/effective-config/v1", *profile, p.configDigest, p.snapshot.TargetID, "denied", "read-only", p.ids}
-	effectiveBytes, _ := json.Marshal(effective)
+	}{"pao.dev/effective-config/v2", *profile, p.configDigest, p.snapshot.TargetID, "denied", "read-only", fresh.config.InstallationState, p.ids}
+	effectiveBytes, err := json.Marshal(effective)
+	if err != nil {
+		return fail(err)
+	}
 	if err := writeOnce(filepath.Join(evidence, "config.effective.json"), effectiveBytes, 0o600); err != nil {
 		return fail(err)
 	}
-	approval := struct{ AuditID, PlanDigest, ConfigDigest, TargetID, ConfirmedAt string }{id, p.plan.PlanDigest, p.configDigest, p.snapshot.TargetID, time.Now().UTC().Format(time.RFC3339Nano)}
-	approvalBytes, _ := json.MarshalIndent(approval, "", "  ")
+	approval := Confirmation{Version: ConfirmationVersion, AuditID: id, PlanDigest: p.plan.PlanDigest, ConfigDigest: p.configDigest, TargetID: p.snapshot.TargetID, ConfirmedAt: time.Now().UTC()}
+	approvalBytes, err := json.MarshalIndent(approval, "", "  ")
+	if err != nil {
+		return fail(err)
+	}
 	if err := writeOnce(filepath.Join(evidence, "confirmation.json"), approvalBytes, 0o600); err != nil {
 		return fail(err)
 	}
@@ -259,9 +310,11 @@ func command(ctx context.Context, args []string, input io.Reader, output, errout
 	record, runErr := executeAudit(ctx, paths, fresh, executor)
 	fmt.Fprintln(output, "Перевіряємо докази й формуємо зведений звіт.")
 	result, err := writeUnifiedReports(evidence, reportDir, fresh.plan, record, runErr, fresh.registry)
+	summary.finish(ctx, fresh.plan, record, result, runErr, err)
 	if err != nil {
 		return fail(err)
 	}
+	fmt.Fprintf(output, "Виконання: %s; розгляд: %s. Підсумок запуску: %q\n", summary.ExecutionStatus, summary.ReviewStatus, filepath.Join(evidence, "run-summary.json"))
 	if runErr != nil {
 		fmt.Fprintln(errout, "INCOMPLETE: аудит завершився з помилкою; наявні докази збережено.")
 		return 4

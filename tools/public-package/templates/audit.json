@@ -1,5 +1,6 @@
 {
-  "version": "pao.dev/local-audit-config/v2",
+  "version": "pao.dev/local-audit-config/v3",
+  "installation_state": "REPLACE_WITH_PRIVATE_INSTALLATION_STATE_DIRECTORY",
   "target": "REPLACE_WITH_ABSOLUTE_TARGET_DIRECTORY",
   "evidence_base": "REPLACE_WITH_SEPARATE_PRIVATE_EVIDENCE_DIRECTORY",
   "report_base": "REPLACE_WITH_SEPARATE_REPORT_DIRECTORY",

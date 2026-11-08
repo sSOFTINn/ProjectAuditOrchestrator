@@ -4,9 +4,17 @@ Copyright 2026 Project Audit Orchestrator contributors
 PAO-authored source and documentation are licensed under Apache License 2.0;
 see LICENSE. Third-party source resources retain their own terms.
 
-Both PAO-owned executables in each binary archive include Go runtime and
-standard-library code. The candidate uses Go 1.27.1. Every binary archive
+The three PAO-owned executables in each binary archive include Go runtime and
+standard-library code. The candidate uses Go 1.27.3. Every binary archive
 includes its exact toolchain's BSD-style license at licenses/GO-LICENSE.txt.
+
+The host PAO executable also includes the Go 1.27.1 Zstandard decoder
+from src/internal/zstd, Copyright The Go Authors, under the same
+BSD-3-Clause terms. Its source, exact hashes and retained license are in
+internal/zstd. Six upstream files are unchanged; PAO modifies zstd.go to
+support windows up to 128 MiB and reject larger windows before allocation,
+and bits.go to avoid overflow while reading wide reverse-bitstream values.
+This decoder is used only for bounded database preparation.
 
 Source-only development resources include unchanged CycloneDX schemas
 (Apache-2.0), SPDX 2.3 schema (CC-BY-3.0), SARIF 2.1.0 schema
@@ -16,7 +24,11 @@ THIRD_PARTY_NOTICES.md, schemas/vendor/pins.json and schemas/vendor/licenses/. T
 not included in the binary payload. JSF/OpenKeyStore attribution remains in
 the unchanged referenced schema.
 
-External scanner binaries, runtime images, rule packs and advisory databases
-are not bundled. Their licenses and redistribution terms are tracked
-separately in docs/legal/toolchain-register.md. No technical check substitutes
-for a human security/license/publication decision.
+The binary archive includes a PAO-authored Apache-2.0 sample Opengrep rule
+pack with five rules, its license and its file manifest. External scanner
+binaries, runtime images, third-party rule packs and advisory databases are
+not bundled. Explicit online setup downloads separate inputs, including a
+multi-license Python/Debian runtime and REUSE dependencies. Their licenses
+and redistribution terms are tracked in docs/legal/toolchain-register.md
+in the source distribution. No technical check substitutes for a human
+security/license/publication decision.

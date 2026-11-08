@@ -53,7 +53,7 @@ Only then may a provider be connected to `HostRunner`. Until then, `pao plan --d
 
 After Docker Desktop reports its engine as running and the owner approves this
 synthetic acceptance run, use a trusted checkout of the selected PAO revision
-and an already installed, verified Go 1.27.1 toolchain. Run from that checkout's
+and an already installed, verified Go 1.27.3 toolchain. Run from that checkout's
 root with ordinary user privileges. On Linux the current user and group must
 both be non-root; the test uses the current numeric UID:GID so private inputs
 can retain their `0700`/`0600` permissions.
@@ -68,7 +68,7 @@ substitute a symlink or an ambient remote Docker context.
 Windows, PowerShell 7:
 
 ```powershell
-$paoGo = 'D:\tools\go1.27.1\bin\go.exe'
+$paoGo = 'D:\tools\go1.27.3\bin\go.exe'
 $paoDocker = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
 $paoEnvironmentNames = @('PAO_DOCKER_INTEGRATION','PAO_GO_PATH','PAO_DOCKER_PATH','GOTOOLCHAIN','GOPROXY','GOSUMDB')
 $paoSavedEnvironment = @{}
@@ -80,7 +80,7 @@ try {
     $env:GOPROXY = 'off'
     $env:GOSUMDB = 'off'
     $paoGoVersion = & $paoGo env GOVERSION
-    if ($LASTEXITCODE -ne 0 -or $paoGoVersion -cne 'go1.27.1') { throw 'Approved Go 1.27.1 is required.' }
+    if ($LASTEXITCODE -ne 0 -or $paoGoVersion -cne 'go1.27.3') { throw 'Approved Go 1.27.3 is required.' }
     $env:PAO_DOCKER_INTEGRATION = '1'
     $env:PAO_GO_PATH = $paoGo
     $env:PAO_DOCKER_PATH = $paoDocker
@@ -98,12 +98,12 @@ Ubuntu 24.04 AMD64, `sh`, from the same selected source revision:
 ```sh
 (
     set -eu
-    pao_go='/absolute/path/to/go1.27.1/bin/go'
+    pao_go='/absolute/path/to/go1.27.3/bin/go'
     pao_docker='/absolute/path/to/regular/docker'
     export GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off
     test "$(id -u)" -ne 0
     test "$(id -g)" -ne 0
-    test "$("$pao_go" env GOVERSION)" = 'go1.27.1'
+    test "$("$pao_go" env GOVERSION)" = 'go1.27.3'
     export PAO_DOCKER_INTEGRATION=1 PAO_GO_PATH="$pao_go" PAO_DOCKER_PATH="$pao_docker"
     "$pao_go" test ./internal/runner -run '^TestDockerHostSyntheticIsolationAcceptance$' -count=1 -v
 )

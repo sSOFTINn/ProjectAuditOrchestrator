@@ -1,0 +1,5 @@
+# Official https://go.dev/dl/?mode=json, verified 2026-11-07.
+# Release build reference: Go 1.27.3. Archives are downloaded only during explicit preparation.
+f26081f438319757f8a1b46d7d0b2c5ec7583d4038e485e0aa725cfde7885fff  go1.27.3.windows-amd64.zip
+65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40  go1.27.3.linux-amd64.tar.gz
+a06e99309dbcbdca1a8ccd2282c3ee146e55930886e26b4f1193269587165f49  go1.27.3.linux-arm64.tar.gz

@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.3.0 — 2026-11-07
+
+- Add explicit online setup with pinned recipes, bounded downloads/extraction,
+  resumable verified stages, recorded advisory database snapshots and generated
+  configuration. Audit execution remains offline.
+- Add fixed synthetic runtime probes and separate final approval of completed
+  installation bytes; setup does not fabricate reviews or install Docker Desktop.
+- Add v3 configuration with a private shared installation journal and locking.
+  Record container intent before creation and ID before start; controlled recovery
+  survives PAO restarts and refuses foreign or ambiguously identified containers.
+- Add read-only profile readiness diagnostics. `doctor READY` describes local
+  prerequisites and is not a security verdict or a scanner acceptance result.
+- Show validated pending lifecycle IDs in doctor output and make setup/recovery
+  prompts respond to cancellation without granting approval or applying cleanup.
+- Prepare a verified private Docker CLI generation on Linux while preserving
+  installed executable layout and pinning on Windows.
+- Add private `pao.dev/run-summary/v1` with separate execution, review, coverage
+  and result paths; keep existing audit numeric exit codes.
+- Preserve legacy v1/v2 preview and import metadata into new v3 configurations;
+  old configurations require migration for execution and are never overwritten.
+- Include the owned probe, setup recipes and PAO-authored sample Opengrep rules
+  in both archives. Bind probe/recipe hashes to the host executable and build record.
+- Vendor the BSD-3-Clause Go 1.27.1 Zstandard decoder for bounded Grype database
+  extraction. Retain original source hashes and attribution; document PAO's
+  bounded 128 MiB window and wide reverse-bitstream corrections.
+- Build with the pinned Go 1.27.3 security patch release. On Windows, reject
+  foreign-owned private state even when its current DACL otherwise passes.
+- Update the exact Syft contract to 1.57.0 and native schema 16.1.13 after
+  upstream security fixes; preserve the captured CycloneDX-to-sbomqs linkage.
+- Prepare the OSV Go database in its native `osv-scalibr/Go/all.zip` layout
+  so offline scans can load the read-only cache without extracting at audit time.
+
+Exact-candidate Windows and Ubuntu acceptance, reviews and signing remain
+required before publication. This entry is not evidence that those gates passed.
+
 ## 0.2.1
 
 This entry describes the version's scope; availability and the signed tag

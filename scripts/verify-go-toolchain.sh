@@ -7,7 +7,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 archive=$1
-checksums=$(dirname "$0")/toolchain/go-1.27.1-checksums.txt
+checksums=$(dirname "$0")/toolchain/go-1.27.3-checksums.txt
 archive_name=$(basename "$archive")
 
 if [ ! -f "$archive" ] || [ ! -f "$checksums" ]; then

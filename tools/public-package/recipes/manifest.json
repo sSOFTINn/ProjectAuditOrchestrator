@@ -1,0 +1,330 @@
+{
+  "api_version": "pao.dev/setup-recipes/v1",
+  "runtime_image": "docker.io/library/python@sha256:05a994d2344eb364cc186910f4fc8786a38215f39f00d0acc25bff33a08f4177",
+  "runtime_source": "https://hub.docker.com/_/python",
+  "runtime_license_url": "https://github.com/docker-library/docs/blob/master/python/README.md",
+  "artifacts": [
+    {
+      "id": "gitleaks",
+      "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+      "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb",
+      "bytes": 8230402,
+      "filename": "gitleaks_8.30.1_linux_x64.tar.gz",
+      "license": "MIT",
+      "purpose": "tool"
+    },
+    {
+      "id": "syft",
+      "url": "https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz",
+      "sha256": "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704",
+      "bytes": 31424471,
+      "filename": "syft_1.57.0_linux_amd64.tar.gz",
+      "license": "Apache-2.0",
+      "purpose": "tool"
+    },
+    {
+      "id": "grype",
+      "url": "https://github.com/anchore/grype/releases/download/v0.118.0/grype_0.118.0_linux_amd64.tar.gz",
+      "sha256": "1d444c5e7360471815f7158f71935fcecc68a3c417d85c7344f770854300bba2",
+      "bytes": 30404925,
+      "filename": "grype_0.118.0_linux_amd64.tar.gz",
+      "license": "Apache-2.0",
+      "purpose": "tool"
+    },
+    {
+      "id": "trivy",
+      "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
+      "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+      "bytes": 50419107,
+      "filename": "trivy_0.74.0_Linux-64bit.tar.gz",
+      "license": "Apache-2.0",
+      "purpose": "tool"
+    },
+    {
+      "id": "osv-scanner",
+      "url": "https://github.com/google/osv-scanner/releases/download/v2.5.1/osv-scanner_linux_amd64",
+      "sha256": "f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be",
+      "bytes": 57725090,
+      "filename": "osv-scanner_linux_amd64",
+      "license": "Apache-2.0",
+      "purpose": "tool"
+    },
+    {
+      "id": "opengrep",
+      "url": "https://github.com/opengrep/opengrep/releases/download/v1.29.0/opengrep_manylinux_x86",
+      "sha256": "3365ef49d04893e01338d85d9bbd49b2bd5261ad4c9c0df0a6a0f8d44232ae13",
+      "bytes": 46442664,
+      "filename": "opengrep_manylinux_x86",
+      "license": "LGPL-2.1-only",
+      "purpose": "tool"
+    },
+    {
+      "id": "zizmor",
+      "url": "https://github.com/zizmorcore/zizmor/releases/download/v1.29.0/zizmor-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "dd96df044a6e8538d5f423790f453bdd03d49e5b2bcc38214acc41a2f1297839",
+      "bytes": 9057024,
+      "filename": "zizmor-x86_64-unknown-linux-gnu.tar.gz",
+      "license": "MIT",
+      "purpose": "tool"
+    },
+    {
+      "id": "scancode",
+      "url": "https://github.com/aboutcode-org/scancode-toolkit/releases/download/v32.5.0/scancode-toolkit-v32.5.0_py3.12-linux.tar.gz",
+      "sha256": "638adcd0af576d1f4d5b64dde228724b3ca4fdee2c4de20d88e4356be353f027",
+      "bytes": 234482714,
+      "filename": "scancode-toolkit-v32.5.0_py3.12-linux.tar.gz",
+      "license": "Apache-2.0 AND CC-BY-4.0",
+      "purpose": "tool"
+    },
+    {
+      "id": "sbomqs",
+      "url": "https://github.com/interlynk-io/sbomqs/releases/download/v2.1.1/sbomqs_2.1.1_Linux_x86_64.tar.gz",
+      "sha256": "6943867fcffba4b1976d8fdc73f50d8ffc97a2449d762a216ae24433141a69d4",
+      "bytes": 10295634,
+      "filename": "sbomqs_2.1.1_Linux_x86_64.tar.gz",
+      "license": "Apache-2.0",
+      "purpose": "tool"
+    },
+    {
+      "id": "attrs",
+      "url": "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl",
+      "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+      "bytes": 67548,
+      "filename": "attrs-26.1.0-py3-none-any.whl",
+      "license": "MIT",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "boolean.py",
+      "url": "https://files.pythonhosted.org/packages/e5/ca/78d423b324b8d77900030fa59c4aa9054261ef0925631cd2501dd015b7b7/boolean_py-5.0-py3-none-any.whl",
+      "sha256": "ef28a70bd43115208441b53a045d1549e2f0ec6e3d08a9d142cbc41c1938e8d9",
+      "bytes": 26577,
+      "filename": "boolean_py-5.0-py3-none-any.whl",
+      "license": "BSD-2-Clause",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "charset-normalizer",
+      "url": "https://files.pythonhosted.org/packages/cc/61/d01fc49b8dea277640b55a9e15960dbca9fdc8c9fde18e572d39c59f4019/charset_normalizer-3.5.1-py3-none-any.whl",
+      "sha256": "6df0ec430f9a831772c23ca5a224cba36517a58a84bb32c32bb59a9fa67c47f6",
+      "bytes": 68658,
+      "filename": "charset_normalizer-3.5.1-py3-none-any.whl",
+      "license": "MIT",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "click",
+      "url": "https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl",
+      "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+      "bytes": 125251,
+      "filename": "click-8.5.0-py3-none-any.whl",
+      "license": "BSD-3-Clause",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "jinja2",
+      "url": "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",
+      "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "bytes": 134899,
+      "filename": "jinja2-3.1.6-py3-none-any.whl",
+      "license": "BSD-3-Clause",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "license-expression",
+      "url": "https://files.pythonhosted.org/packages/af/40/791891d4c0c4dab4c5e187c17261cedc26285fd41541577f900470a45a4d/license_expression-30.4.4-py3-none-any.whl",
+      "sha256": "421788fdcadb41f049d2dc934ce666626265aeccefddd25e162a26f23bcbf8a4",
+      "bytes": 120615,
+      "filename": "license_expression-30.4.4-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "markupsafe",
+      "url": "https://files.pythonhosted.org/packages/3c/2e/8d0c2ab90a8c1d9a24f0399058ab8519a3279d1bd4289511d74e909f060e/markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "sha256": "d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d",
+      "bytes": 22947,
+      "filename": "markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "license": "BSD-3-Clause",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "python-debian",
+      "url": "https://files.pythonhosted.org/packages/6e/47/e184f0004e63dbc49c4bad5e811218f66bece1b519f80b06a619b42e6ec3/python_debian-1.1.1-py3-none-any.whl",
+      "sha256": "f98ae013e8e5310e49041cc3860a7105df73af73d4ff1d8afb474770d328a6ad",
+      "bytes": 138101,
+      "filename": "python_debian-1.1.1-py3-none-any.whl",
+      "license": "GPL-2.0-or-later",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "python-magic",
+      "url": "https://files.pythonhosted.org/packages/6c/73/9f872cb81fc5c3bb48f7227872c28975f998f3e7c2b1c16e95e6432bbb90/python_magic-0.4.27-py2.py3-none-any.whl",
+      "sha256": "c212960ad306f700aa0d01e5d7a325d20548ff97eb9920dcd29513174f0294d3",
+      "bytes": 13840,
+      "filename": "python_magic-0.4.27-py2.py3-none-any.whl",
+      "license": "MIT",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "reuse",
+      "url": "https://files.pythonhosted.org/packages/05/35/298d9410b3635107ce586725cdfbca4c219c08d77a3511551f5e479a78db/reuse-6.2.0.tar.gz",
+      "sha256": "4feae057a2334c9a513e6933cdb9be819d8b822f3b5b435a36138bd218897d23",
+      "bytes": 1615611,
+      "filename": "reuse-6.2.0.tar.gz",
+      "license": "GPL-3.0-or-later",
+      "purpose": "tool"
+    },
+    {
+      "id": "tomlkit",
+      "url": "https://files.pythonhosted.org/packages/13/bc/8c13eb66537dce1d2bd3a57132902f38d0e7f5bb46fa9f4daed9fe9d76ee/tomlkit-0.15.1-py3-none-any.whl",
+      "sha256": "177a05aece5a8ca5266fd3c448abb47b8d352f09d477d3ca8332db4d89b24304",
+      "bytes": 49449,
+      "filename": "tomlkit-0.15.1-py3-none-any.whl",
+      "license": "MIT",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "poetry-core",
+      "url": "https://files.pythonhosted.org/packages/c7/d8/bb2f602f5e012e177e1c8560125f9770945d36622595990cf1cb794477c2/poetry_core-2.2.1-py3-none-any.whl",
+      "sha256": "bdfce710edc10bfcf9ab35041605c480829be4ab23f5bc01202cfe5db8f125ab",
+      "bytes": 338598,
+      "filename": "poetry_core-2.2.1-py3-none-any.whl",
+      "license": "MIT",
+      "purpose": "reuse-dependency"
+    },
+    {
+      "id": "gcc-14-base",
+      "url": "https://deb.debian.org/debian/pool/main/g/gcc-14/gcc-14-base_14.2.0-19_amd64.deb",
+      "sha256": "5b6825de4263824b78c4c51f6476414f3b4e89c2ab63e81dc8b9b5501e867cf6",
+      "bytes": 49432,
+      "filename": "gcc-14-base_14.2.0-19_amd64.deb",
+      "license": "LicenseRef-Debian-gcc-14-copyright",
+      "purpose": "runtime"
+    },
+    {
+      "id": "libgcc-s1",
+      "url": "https://deb.debian.org/debian/pool/main/g/gcc-14/libgcc-s1_14.2.0-19_amd64.deb",
+      "sha256": "3c71917b490d1a17aed43196a2787a256ecf060526cdb20216a74bedc061b150",
+      "bytes": 72772,
+      "filename": "libgcc-s1_14.2.0-19_amd64.deb",
+      "license": "GPL-3.0-or-later WITH GCC-exception-3.1",
+      "purpose": "runtime"
+    },
+    {
+      "id": "libgomp1",
+      "url": "https://deb.debian.org/debian/pool/main/g/gcc-14/libgomp1_14.2.0-19_amd64.deb",
+      "sha256": "72b7a1a33c48f3195efeb044111b34ae684b1e640bb6495c832443b798601cd5",
+      "bytes": 137148,
+      "filename": "libgomp1_14.2.0-19_amd64.deb",
+      "license": "GPL-3.0-or-later WITH GCC-exception-3.1",
+      "purpose": "runtime"
+    }
+  ],
+  "tools": [
+    {
+      "id": "gitleaks",
+      "version": "8.30.1",
+      "artifact": "gitleaks",
+      "format": "tar.gz",
+      "binary_sha256": "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509",
+      "license": "MIT",
+      "license_url": "https://raw.githubusercontent.com/gitleaks/gitleaks/v8.30.1/LICENSE",
+      "member": "gitleaks"
+    },
+    {
+      "id": "syft",
+      "version": "1.57.0",
+      "artifact": "syft",
+      "format": "tar.gz",
+      "binary_sha256": "103469021520fc36c94fe5d2139bb45506f520a8043c61b8dcb161053933ba9e",
+      "license": "Apache-2.0",
+      "license_url": "https://raw.githubusercontent.com/anchore/syft/v1.57.0/LICENSE",
+      "member": "syft"
+    },
+    {
+      "id": "grype",
+      "version": "0.118.0",
+      "artifact": "grype",
+      "format": "tar.gz",
+      "binary_sha256": "91705979c6ccb736b87e3250831f5e1a35f13767fd2032ffa85c55b1e6f58f90",
+      "license": "Apache-2.0",
+      "license_url": "https://raw.githubusercontent.com/anchore/grype/v0.118.0/LICENSE",
+      "member": "grype"
+    },
+    {
+      "id": "trivy",
+      "version": "0.74.0",
+      "artifact": "trivy",
+      "format": "tar.gz",
+      "binary_sha256": "d89bcc6510a267f11b773398cbf1be5520ce39f9e8b6633178c4487f05b7d791",
+      "license": "Apache-2.0",
+      "license_url": "https://raw.githubusercontent.com/aquasecurity/trivy/v0.74.0/LICENSE",
+      "member": "trivy"
+    },
+    {
+      "id": "osv-scanner",
+      "version": "2.5.1",
+      "artifact": "osv-scanner",
+      "format": "raw",
+      "binary_sha256": "f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be",
+      "license": "Apache-2.0",
+      "license_url": "https://raw.githubusercontent.com/google/osv-scanner/v2.5.1/LICENSE"
+    },
+    {
+      "id": "opengrep",
+      "version": "1.29.0",
+      "artifact": "opengrep",
+      "format": "raw",
+      "binary_sha256": "3365ef49d04893e01338d85d9bbd49b2bd5261ad4c9c0df0a6a0f8d44232ae13",
+      "license": "LGPL-2.1-only",
+      "license_url": "https://raw.githubusercontent.com/opengrep/opengrep/v1.29.0/LICENSE"
+    },
+    {
+      "id": "zizmor",
+      "version": "1.29.0",
+      "artifact": "zizmor",
+      "format": "tar.gz",
+      "binary_sha256": "a3331b0a69fc0d8bf8087b0d74d5424602c5a0f2fc2770afe2e908a1295692b5",
+      "license": "MIT",
+      "license_url": "https://raw.githubusercontent.com/zizmorcore/zizmor/v1.29.0/LICENSE",
+      "member": "zizmor"
+    },
+    {
+      "id": "scancode",
+      "version": "32.5.0",
+      "artifact": "scancode",
+      "format": "scancode",
+      "binary_sha256": "50add1b40ec7bd25592c663386d98fbef280d3f668f5ab9f89965ed0bf7583dc",
+      "license": "Apache-2.0",
+      "license_url": "https://raw.githubusercontent.com/aboutcode-org/scancode-toolkit/v32.5.0/NOTICE"
+    },
+    {
+      "id": "sbomqs",
+      "version": "2.1.1",
+      "artifact": "sbomqs",
+      "format": "tar.gz",
+      "binary_sha256": "2ca59447712b11b9829c8e3fc1f899251d1313db4f7fdb4adf43f56a786fbd6c",
+      "license": "Apache-2.0",
+      "license_url": "https://raw.githubusercontent.com/interlynk-io/sbomqs/v2.1.1/LICENSE",
+      "member": "sbomqs"
+    },
+    {
+      "id": "reuse",
+      "version": "6.2.0",
+      "artifact": "reuse",
+      "format": "reuse",
+      "binary_sha256": "4feae057a2334c9a513e6933cdb9be819d8b822f3b5b435a36138bd218897d23",
+      "license": "GPL-3.0-or-later",
+      "license_url": "https://raw.githubusercontent.com/fsfe/reuse-tool/v6.2.0/LICENSES/GPL-3.0-or-later.txt"
+    }
+  ],
+  "payload": {
+    "recipes/prepare-state.py": "d6f6aa594c903372fb2109e1b73c308e3d05e277156cd6f0734fd8e040d82e09",
+    "recipes/runtime.Dockerfile": "2a09d9cc6d53ddcdc2b562c88e3763867faacda008169e1d1f9aec1e1734fa2c",
+    "recipes/opengrep/pao-baseline-v1/LICENSE": "03a8162174763f446ea2bb3a65826c82eeec45c76ed3557d8d097d43c3cbc50a",
+    "recipes/opengrep/pao-baseline-v1/pao-input-manifest.json": "891a4523a886ce903e4488b6e5d49d00f1f28d1efedb0822f8d52f4f88773deb",
+    "recipes/opengrep/pao-baseline-v1/README.md": "dff3d4d76ad5fcc59e57fc7e7f94a1c217e98427ae13dc6964a8a1409e47d4a6",
+    "recipes/opengrep/pao-baseline-v1/rules.yml": "c18af92cb481ec31357689ee0ec75be99734d76fd8b15c0bdceb64ff7dfa824a"
+  }
+}

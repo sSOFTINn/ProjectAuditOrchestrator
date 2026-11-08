@@ -19,6 +19,7 @@ import (
 
 const Version = "pao.dev/local-audit-config/v1"
 const PortableVersion = "pao.dev/local-audit-config/v2"
+const InstallationVersion = "pao.dev/local-audit-config/v3"
 const MaxBytes = 64 << 10
 
 type Config struct {
@@ -32,6 +33,7 @@ type Config struct {
 	DockerBaseProvider     string `json:"docker_base_provider"`
 	DockerScanCodeProvider string `json:"docker_scancode_provider"`
 	ToolchainCatalog       string `json:"toolchain_catalog,omitempty"`
+	InstallationState      string `json:"installation_state,omitempty"`
 }
 
 // Decode rejects duplicate and case-variant keys (encoding/json alone accepts both),
@@ -46,7 +48,7 @@ func Decode(data []byte) (Config, error) {
 	if err != nil || first != json.Delim('{') {
 		return c, errors.New("configuration must be one JSON object")
 	}
-	allowed := map[string]bool{"version": true, "target": true, "evidence_base": true, "report_base": true, "toolchain_root": true, "rule_pack_root": true, "manifest_root": true, "docker_base_provider": true, "docker_scancode_provider": true, "toolchain_catalog": true}
+	allowed := map[string]bool{"version": true, "target": true, "evidence_base": true, "report_base": true, "toolchain_root": true, "rule_pack_root": true, "manifest_root": true, "docker_base_provider": true, "docker_scancode_provider": true, "toolchain_catalog": true, "installation_state": true}
 	seen := map[string]bool{}
 	for d.More() {
 		token, err := d.Token()
@@ -73,8 +75,8 @@ func Decode(data []byte) (Config, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return c, err
 	}
-	if c.Version != Version && c.Version != PortableVersion {
-		return c, errors.New(`configuration field "version" must be pao.dev/local-audit-config/v1 or pao.dev/local-audit-config/v2`)
+	if c.Version != Version && c.Version != PortableVersion && c.Version != InstallationVersion {
+		return c, errors.New(`configuration field "version" must be pao.dev/local-audit-config/v1, pao.dev/local-audit-config/v2 or pao.dev/local-audit-config/v3`)
 	}
 	required := [][2]string{
 		{"target", c.Target}, {"evidence_base", c.EvidenceBase}, {"report_base", c.ReportBase},
@@ -88,12 +90,32 @@ func Decode(data []byte) (Config, error) {
 	} else {
 		required = append(required, [2]string{"toolchain_catalog", c.ToolchainCatalog})
 	}
+	if c.Version == InstallationVersion {
+		required = append(required, [2]string{"installation_state", c.InstallationState})
+	} else if seen["installation_state"] {
+		return c, errors.New(`configuration field "installation_state" requires configuration v3`)
+	}
 	for _, field := range required {
 		if field[1] == "" {
 			return c, fmt.Errorf("required configuration field %q is empty or missing; supply its absolute local path", field[0])
 		}
 	}
 	return c, nil
+}
+
+// UsesCatalog distinguishes historical built-in identities from reviewed,
+// operator-owned catalog records. Configuration versions must remain explicit.
+func (c Config) UsesCatalog() bool {
+	return c.Version == PortableVersion || c.Version == InstallationVersion
+}
+
+// RequireExecutionVersion does not migrate or rewrite an operator's file.
+// Legacy configurations remain readable for preview and deliberate import.
+func (c Config) RequireExecutionVersion() error {
+	if c.Version != InstallationVersion {
+		return errors.New("MIGRATION_REQUIRED: execution requires configuration v3 with installation_state; use pao setup --root NEW_DIRECTORY --import-config FILE --apply and keep the original configuration")
+	}
+	return nil
 }
 
 func Resolve(name string) (string, error) {
@@ -113,7 +135,9 @@ func Resolve(name string) (string, error) {
 	return filepath.Join(base, "PAO", "config", name), nil
 }
 
-func Load(path string) (Config, error) {
+// Read strictly decodes a safe configuration file without probing the target
+// or its other paths. Diagnostic and migration callers validate those separately.
+func Read(path string) (Config, error) {
 	var c Config
 	if err := CheckPath(path, false); err != nil {
 		return c, err
@@ -132,6 +156,14 @@ func Load(path string) (Config, error) {
 		return c, err
 	}
 	c, err = Decode(data)
+	if err != nil {
+		return c, err
+	}
+	return c, nil
+}
+
+func Load(path string) (Config, error) {
+	c, err := Read(path)
 	if err != nil {
 		return c, err
 	}
@@ -157,9 +189,12 @@ func (c Config) ValidatePaths(configPath string) error {
 		{"toolchain", c.ToolchainRoot, true}, {"rule pack", c.RulePackRoot, true}, {"manifests", c.ManifestRoot, true},
 		{"base Docker provider", c.DockerBaseProvider, true}, {"ScanCode Docker provider", c.DockerScanCodeProvider, true},
 		{"toolchain catalog", c.ToolchainCatalog, true},
+		{"installation state", c.InstallationState, true},
 	}
 	for _, entry := range paths {
-		if entry.path == "" && (c.Version == PortableVersion || entry.name == "toolchain catalog") {
+		optionalCatalogInput := c.UsesCatalog() && (entry.name == "rule pack" || entry.name == "base Docker provider" || entry.name == "ScanCode Docker provider")
+		historicalInput := (entry.name == "toolchain catalog" && c.Version == Version) || (entry.name == "installation state" && c.Version != InstallationVersion)
+		if entry.path == "" && (optionalCatalogInput || historicalInput) {
 			continue
 		}
 		if err := CheckPath(entry.path, !entry.mustExist); err != nil {
@@ -178,7 +213,7 @@ func (c Config) ValidatePaths(configPath string) error {
 		}
 	}
 	// Reject overlap in either direction: auditing a parent of private state would expose it.
-	for _, path := range []string{filepath.Dir(configPath), c.EvidenceBase, c.ReportBase, c.ToolchainRoot, c.RulePackRoot, c.ManifestRoot, c.DockerBaseProvider, c.DockerScanCodeProvider, c.ToolchainCatalog} {
+	for _, path := range []string{filepath.Dir(configPath), c.EvidenceBase, c.ReportBase, c.ToolchainRoot, c.RulePackRoot, c.ManifestRoot, c.DockerBaseProvider, c.DockerScanCodeProvider, c.ToolchainCatalog, c.InstallationState} {
 		if Overlap(c.Target, path) {
 			return errors.New("target must be separate from configuration, outputs and trusted inputs")
 		}
@@ -187,10 +222,15 @@ func (c Config) ValidatePaths(configPath string) error {
 		return errors.New("raw evidence and portable reports must be separate")
 	}
 	for _, output := range []string{c.EvidenceBase, c.ReportBase} {
-		for _, input := range []string{filepath.Dir(configPath), c.ToolchainRoot, c.RulePackRoot, c.ManifestRoot, c.DockerBaseProvider, c.DockerScanCodeProvider, c.ToolchainCatalog} {
+		for _, input := range []string{filepath.Dir(configPath), c.ToolchainRoot, c.RulePackRoot, c.ManifestRoot, c.DockerBaseProvider, c.DockerScanCodeProvider, c.ToolchainCatalog, c.InstallationState} {
 			if Overlap(output, input) {
 				return errors.New("output directories must be separate from configuration and trusted inputs")
 			}
+		}
+	}
+	for _, path := range []string{filepath.Dir(configPath), c.EvidenceBase, c.ReportBase, c.ToolchainRoot, c.RulePackRoot, c.ManifestRoot, c.DockerBaseProvider, c.DockerScanCodeProvider, c.ToolchainCatalog} {
+		if Overlap(c.InstallationState, path) {
+			return errors.New("installation state must be separate from configuration, outputs and trusted inputs")
 		}
 	}
 	return nil

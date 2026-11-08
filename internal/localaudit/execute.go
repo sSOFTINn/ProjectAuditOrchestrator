@@ -78,6 +78,8 @@ func executeAudit(ctx context.Context, paths auditPaths, prepared preparedAudit,
 	selected := func(id string) bool { return selectedIDs[id] }
 	baseHost := prepared.baseHost
 	scancodeHost := prepared.scancodeHost
+	baseHost.InstallationState, baseHost.AuditID = prepared.config.InstallationState, paths.auditID
+	scancodeHost.InstallationState, scancodeHost.AuditID = prepared.config.InstallationState, paths.auditID
 	strong := runner.SandboxProperties{Isolation: runner.StrongIsolation, RepositoryReadOnly: true, TemporaryWriteOnly: true, NetworkDenied: true, EnvironmentSanitized: true, ProcessTreeControlled: true, CPULimited: true, MemoryLimited: true, FilesystemIsolated: true, CleanRuntime: true}
 	tool := func(parts ...string) string { return filepath.Join(append([]string{paths.toolchainRoot}, parts...)...) }
 	work := func(id string) string { return filepath.Join(paths.evidenceRoot, "work", id) }
@@ -106,6 +108,7 @@ func executeAudit(ctx context.Context, paths auditPaths, prepared preparedAudit,
 				return blocked(paths.auditID, lock, manifestByID[id], nodeByID[id], id, "catalog execution declaration rejected")
 			}
 		}
+		host.InstallationState, host.AuditID = prepared.config.InstallationState, paths.auditID
 		if err := os.MkdirAll(spec.TemporaryDir, 0o700); err != nil {
 			return blocked(paths.auditID, lock, manifestByID[spec.AdapterID], node, spec.AdapterID, "temporary output unavailable")
 		}
@@ -245,7 +248,7 @@ func executeAudit(ctx context.Context, paths auditPaths, prepared preparedAudit,
 		executions = append(executions, execute(zizmor, baseHost))
 	}
 
-	fmt.Fprintln(paths.output, "Звіряємо незмінність файлів проєкту та зберігаємо запис запуску.")
+	fmt.Fprintln(paths.output, "Звіряємо незмінність приватного знімка входів та зберігаємо запис запуску; оригінальний проєкт після копіювання повторно не перевіряється.")
 	after, snapshotErr := target.SnapshotRootContext(ctx, paths.targetRoot)
 	record := runner.Record{Producer: &producer, Version: runner.RunRecordVersion, PlanDigest: lock.PlanDigest, TargetBefore: before, TargetAfter: after, Executions: executions}
 	recordBytes, err := json.MarshalIndent(record, "", "  ")

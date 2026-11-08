@@ -1,8 +1,10 @@
-# Private toolchain catalog for portable configuration v2
+# Private toolchain catalog for configuration v3
 
 Public templates are deliberately unusable. Installing, licensing and reviewing
-scanner bytes, state, databases and images is a separate operator task. No catalog
-operation downloads them. Do not replace approval placeholders with invented values.
+scanner bytes, state, databases and images is a separate operator task. Explicit
+`setup --apply` prepares them and writes a new catalog after synthetic verification
+and exact owner approval; reading a catalog never downloads them. Do not replace
+approval placeholders with invented values.
 
 This describes the v0.2 catalog contract. Each installation needs its own verified
 tool, data and runtime approvals.
@@ -10,9 +12,12 @@ Use the exact manifests from the verified package. Their compatible tool/native
 schema versions are admission boundaries; a hash match does not approve a new
 scanner version, unknown JSON shape or every adjacent runtime file.
 
-Use `audit.json` version `pao.dev/local-audit-config/v2`. Required absolute paths:
+Use generated configuration version `pao.dev/local-audit-config/v3`. Required absolute paths:
 `target`, `evidence_base`, `report_base`, `toolchain_root`, `manifest_root`,
-`toolchain_catalog`. Evidence/reports and trusted configuration must not overlap
+`toolchain_catalog` and `installation_state`. The latter is shared by all
+configurations of the same installation and stores private durable lifecycle
+records and cross-process locks. Legacy v1/v2 execution requires migration;
+preview remains available. Evidence/reports and trusted configuration must not overlap
 the untrusted target. `manifest_root` points at the package's `adapters` directory.
 `docker_base_provider` / `docker_scancode_provider` are absolute paths to reviewed
 provider JSON; only providers selected by the profile are required. `rule_pack_root`

@@ -201,7 +201,7 @@ def validate(workflow, kind):
             checkout_contract["fetch-depth"] = 0
         require(checkout["with"] == checkout_contract, "checkout source/credentials/history contract differs")
         setup = use(steps, "actions/setup-go")
-        require(setup["with"] == {"go-version": "1.27.1", "check-latest": False, "cache": False}, "Go action configuration differs")
+        require(setup["with"] == {"go-version": "1.27.3", "check-latest": False, "cache": False}, "Go action configuration differs")
     if kind == "ci":
         test = workflow["jobs"]["test"]
         require(test.get("name") == "hosted-${{ matrix.os }}" and

@@ -10,10 +10,14 @@ import (
 // Windows handles end with the PAO process; private readonly copies remain.
 type UnconfirmedContainerCleanupError struct {
 	ContainerName string
+	RunID         string
 	Cause         error
 }
 
 func (e *UnconfirmedContainerCleanupError) Error() string {
+	if e.RunID != "" {
+		return "container teardown could not be confirmed; private inputs retained; recovery run " + e.RunID
+	}
 	return "container teardown could not be confirmed; private inputs retained"
 }
 func (e *UnconfirmedContainerCleanupError) Unwrap() error { return e.Cause }

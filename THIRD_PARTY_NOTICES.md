@@ -6,21 +6,43 @@ different inventories; neither inventory is a security or legal approval.
 
 ## Binary archives
 
-Each Windows AMD64 ZIP and Linux AMD64 tar.gz contains two PAO-owned executables:
+Each Windows AMD64 ZIP and Linux AMD64 tar.gz contains three PAO-owned executables:
 the host PAO command and the static Linux AMD64 `pao-sandbox-linux-amd64`
-supervisor used inside the reviewed Linux VM. Both include Go runtime and
-standard-library code. The exact candidate toolchain is Go 1.27.1; each archive
+supervisor and `pao-probe-linux-amd64` synthetic probe used inside the reviewed
+Linux VM. All three include Go runtime and
+standard-library code. The exact candidate toolchain is Go 1.27.3; each archive
 preserves that toolchain's BSD-style license at `licenses/GO-LICENSE.txt`.
+The host PAO also incorporates eight Go 1.27.1 `src/internal/zstd` decoder
+files under those terms. Six are unchanged; PAO modifies `zstd.go` to support
+windows up to 128 MiB and reject larger windows before allocation, and `bits.go`
+to avoid overflow while reading wide reverse-bitstream values. The source distribution
+retains [the license](internal/zstd/LICENSE), copyright headers and
+[exact hashes and origin](internal/zstd/README.md). This is a runtime source
+dependency for database preparation, although it is not a Go module dependency.
 Public `VERSION.json`, binary build info and checksums identify the actual
 payload; `BUILD-METADATA.json` is retained as separate internal evidence.
 
 The Go core has no third-party `require` entries in `go.mod`. This does not
 exclude Go runtime/stdlib from its inventory. The archive does not contain
-external scanner binaries, runtime images, rule packs, advisory databases,
-Python wheels or cached upstream JSON schemas. Scanner/data terms remain
+external scanner binaries, runtime images, third-party rule packs, advisory databases,
+Python wheels or cached upstream JSON schemas. It includes PAO-authored
+preparation recipes and a PAO-authored Apache-2.0 sample Opengrep pack with
+five rules, its license and its file manifest; external
+artifacts named by recipes are obtained only by explicit online setup.
+Scanner/data terms remain
 separate in the [toolchain register](docs/legal/toolchain-register.md) and
 [integration policy](docs/legal/third-party-integration-policy.md). PAO's license
 does not grant those rights.
+
+Online setup inputs include a digest-pinned Python/Debian base image,
+three pinned Debian packages and eleven direct REUSE dependencies. These
+are downloaded separately and are absent from the binary archive. The image
+has multiple component licenses; the Dockerfile repository's MIT license
+does not describe all software inside the image. The
+[setup-input inventory](docs/legal/toolchain-register.md#inputs-downloaded-only-by-explicit-setup)
+records the exact recipe versions and links to publisher terms. It is a
+bounded inventory of recipe inputs, not an exhaustive license inventory of
+all software embedded in upstream binaries, archives or runtime layers.
 
 ## Source-only development and validation material
 

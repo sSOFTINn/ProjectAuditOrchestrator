@@ -14,7 +14,7 @@ func TestShippedManifestsBindExactParserCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	versions := map[string]string{
-		"syft": "1.51.1", "sbomqs": "2.1.1", "grype": "0.118.0",
+		"syft": "1.57.0", "sbomqs": "2.1.1", "grype": "0.118.0",
 		"osv-scanner": "2.5.1", "scancode": "32.5.0", "reuse": "6.2.0",
 		"trivy": "0.74.0", "gitleaks": "8.30.1", "opengrep": "1.29.0", "zizmor": "1.29.0",
 	}
@@ -50,6 +50,25 @@ func TestLegacyManifestCanBeInspectedButCannotAuthorizeUnknownParser(t *testing.
 	manifest.CompatibleToolVersions = []string{"custom-synthetic-version"}
 	if err := manifest.AllowsToolVersion("custom-synthetic-version"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSyftManifestRejectsVulnerableAndUndeclaredToolVersions(t *testing.T) {
+	path, err := filepath.Abs(filepath.Join("..", "..", "adapters", "syft", "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, version := range []string{"1.51.1", "1.51.0", "1.50.0", "1.52.0", "1.57.1", "v1.57.0"} {
+		if err := manifest.AllowsToolVersion(version); err == nil {
+			t.Fatalf("vulnerable or unreviewed Syft version admitted: %s", version)
+		}
+	}
+	if err := manifest.AllowsToolVersion("1.57.0"); err != nil {
+		t.Fatal("the reviewed Syft release is not admitted")
 	}
 }
 

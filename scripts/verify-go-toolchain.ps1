@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory)]
     [string]$ArchivePath,
 
-    [string]$ChecksumsPath = (Join-Path $PSScriptRoot 'toolchain/go-1.27.1-checksums.txt')
+    [string]$ChecksumsPath = (Join-Path $PSScriptRoot 'toolchain/go-1.27.3-checksums.txt')
 )
 
 $ErrorActionPreference = 'Stop'
